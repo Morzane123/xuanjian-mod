@@ -6,7 +6,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,22 +63,22 @@ public class XuanjianModClient implements ClientModInitializer {
                 client.execute(() -> {
                     if (client.player == null) return;
                     if (resp == null) {
-                        client.player.displayClientMessage(
-                                Component.literal("§c[玄剑] 自动签到失败：官网服务不可用"), false);
+                        client.player.sendSystemMessage(
+                                Component.literal("§c[玄剑] 自动签到失败：官网服务不可用"));
                     } else if (resp.has("error")) {
                         String err = resp.get("error").getAsString();
                         if (err.contains("今日已签到")) {
-                            client.player.displayClientMessage(
-                                    Component.literal("§7[玄剑] 今日已在官网签到"), false);
+                            client.player.sendSystemMessage(
+                                    Component.literal("§7[玄剑] 今日已在官网签到"));
                         } else {
-                            client.player.displayClientMessage(
-                                    Component.literal("§c[玄剑] 自动签到失败：" + err), false);
+                            client.player.sendSystemMessage(
+                                    Component.literal("§c[玄剑] 自动签到失败：" + err));
                         }
                     } else {
                         int reward = resp.has("rewardPoints") ? resp.get("rewardPoints").getAsInt() : 0;
                         int total = resp.has("totalContribution") ? resp.get("totalContribution").getAsInt() : 0;
-                        client.player.displayClientMessage(
-                                Component.literal("§a[玄剑] 官网签到成功，获得 " + reward + " 贡献点（余额 " + total + "）"), false);
+                        client.player.sendSystemMessage(
+                                Component.literal("§a[玄剑] 官网签到成功，获得 " + reward + " 贡献点（余额 " + total + "）"));
                     }
                 });
             });
@@ -105,7 +105,7 @@ public class XuanjianModClient implements ClientModInitializer {
     }
 
     /** 心跳上报：检测玩家在线即周期上报（仅已绑定角色参与官网活跃统计） */
-    private void doHeartbeat(MinecraftClient client) {
+    private void doHeartbeat(Minecraft client) {
         UUID uuid = client.player.getUUID();
         if (!mod.getBindManager().isBound(uuid)) return;
         Map<String, Object> body = new HashMap<>();
@@ -114,7 +114,7 @@ public class XuanjianModClient implements ClientModInitializer {
     }
 
     /** 日报/决策同步 + 申报审核提醒（本地聊天栏提示当前玩家） */
-    private void doSync(MinecraftClient client) {
+    private void doSync(Minecraft client) {
         final UUID uuid = client.player.getUUID();
         CompletableFuture.runAsync(() -> {
             // 功能5：日报/决策更新（仅已绑定玩家才提示）
@@ -147,10 +147,10 @@ public class XuanjianModClient implements ClientModInitializer {
     }
 
     /** 回渲染线程显示消息 */
-    private void show(MinecraftClient client, String msg) {
+    private void show(Minecraft client, String msg) {
         client.execute(() -> {
             if (client.player != null) {
-                client.player.displayClientMessage(Component.literal(msg), false);
+                client.player.sendSystemMessage(Component.literal(msg));
             }
         });
     }
