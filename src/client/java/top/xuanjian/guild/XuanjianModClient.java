@@ -50,6 +50,7 @@ public class XuanjianModClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (client.player == null) return;
             UUID uuid = client.player.getUUID();
+            mod.getBindManager().syncFromServer(uuid); // 邮件确认后本地缓存可能未更新，先同步官网状态
             if (!mod.getBindManager().isBound(uuid)) return;
             String name = client.player.getName().getString();
             CompletableFuture.runAsync(() -> {
@@ -117,9 +118,11 @@ public class XuanjianModClient implements ClientModInitializer {
     private void doSync(Minecraft client) {
         final UUID uuid = client.player.getUUID();
         CompletableFuture.runAsync(() -> {
+            // 先同步官网绑定状态到本地缓存（邮件确认后自动生效）
+            boolean bound = mod.getBindManager().syncFromServer(uuid);
             // 功能5：日报/决策更新（仅已绑定玩家才提示）
             try {
-                if (mod.getBindManager().isBound(uuid)) {
+                if (bound) {
                     List<JsonObject> updates = mod.getUpdateSync().pollNew();
                     for (JsonObject u : updates) {
                         String type = u.has("type") ? u.get("type").getAsString() : "";
