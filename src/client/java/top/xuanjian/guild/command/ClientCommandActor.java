@@ -1,12 +1,8 @@
 package top.xuanjian.guild.command;
 
-import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -43,21 +39,5 @@ public class ClientCommandActor implements CommandActor {
     @Override
     public boolean isValid() {
         return player != null;
-    }
-
-    @Override
-    public List<String> getLocalOnlinePlayers() {
-        try {
-            if (player.connection == null) return null;
-            Collection<PlayerInfo> infos = player.connection.getOnlinePlayers();
-            if (infos == null || infos.isEmpty()) return new ArrayList<>();
-            List<String> names = new ArrayList<>();
-            for (PlayerInfo info : infos) {
-                names.add(info.getProfile().getName());
-            }
-            return names;
-        } catch (Exception e) {
-            return null; // 读取失败：回退官网查询
-        }
     }
 }
