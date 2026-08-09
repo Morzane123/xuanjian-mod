@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.xuanjian.guild.bind.BindManager;
 import top.xuanjian.guild.checkin.CheckinManager;
+import top.xuanjian.guild.command.ServerCommandActor;
 import top.xuanjian.guild.command.XjCommand;
 import top.xuanjian.guild.config.ModConfig;
 import top.xuanjian.guild.economy.ClaimManager;
@@ -40,6 +42,13 @@ public class XuanjianMod implements ModInitializer {
     public static final String VERSION = "0.1.0";
     private static final Logger LOGGER = LoggerFactory.getLogger("xuanjianmod");
 
+    /** 单例：客户端入口（XuanjianModClient）通过该实例复用全部管理器 */
+    private static XuanjianMod INSTANCE;
+
+    public static XuanjianMod getInstance() {
+        return INSTANCE;
+    }
+
     private ModConfig config;
     private ApiClient api;
     private BindManager bindManager;
@@ -61,6 +70,7 @@ public class XuanjianMod implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("[xuanjianmod] 玄剑公会联动模组加载中 v{}", VERSION);
+        INSTANCE = this;
 
         Path configDir = Path.of("config");
         config = new ModConfig(configDir);
@@ -81,7 +91,7 @@ public class XuanjianMod implements ModInitializer {
 
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            new XjCommand(this).register(dispatcher::register);
+            dispatcher.register(new XjCommand<CommandSourceStack>(this, ServerCommandActor::from).build());
         });
     }
 
