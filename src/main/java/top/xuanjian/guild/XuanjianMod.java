@@ -90,7 +90,7 @@ public class XuanjianMod implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer player = handler.getPlayer();
             if (player == null) return;
-            UUID uuid = player.getGameProfile().getId();
+            UUID uuid = player.getUUID();
             if (!bindManager.isBound(uuid)) return; // 未绑定不签到
 
             server.execute(() -> {
@@ -99,7 +99,7 @@ public class XuanjianMod implements ModInitializer {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
-                JsonObject resp = checkinManager.checkin(uuid, player.getGameProfile().getName());
+                JsonObject resp = checkinManager.checkin(uuid, player.getName().getString());
                 if (resp == null) {
                     player.sendSystemMessage(Component.literal("§c[玄剑] 自动签到失败：官网服务不可用"));
                 } else if (resp.has("error")) {
@@ -127,7 +127,7 @@ public class XuanjianMod implements ModInitializer {
         // 玩家断开时清理心跳记录
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             if (handler.getPlayer() != null) {
-                lastHeartbeat.remove(handler.getPlayer().getGameProfile().getId());
+                lastHeartbeat.remove(handler.getPlayer().getUUID());
             }
         });
     }
@@ -162,8 +162,8 @@ public class XuanjianMod implements ModInitializer {
         List<OnlineManager.OnlinePlayer> onlinePlayers = new ArrayList<>();
         long now = System.currentTimeMillis();
         for (ServerPlayer p : mcServer.getPlayerList().getPlayers()) {
-            UUID uuid = p.getGameProfile().getId();
-            String name = p.getGameProfile().getName();
+            UUID uuid = p.getUUID();
+            String name = p.getName().getString();
             lastHeartbeat.put(uuid, now);
             onlinePlayers.add(new OnlineManager.OnlinePlayer(uuid, name));
         }
