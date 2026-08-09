@@ -315,12 +315,14 @@ public class XjCommand<S> {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
         OnlineManager om = mod.getOnlineManager();
-        List<OnlineManager.OnlinePlayer> players = om.queryOnline(om.getServerIp() == null ? "" : om.getServerIp());
+        // 服务端配置了 server.ip 则查本服；客户端/未配置则查全网已绑定玄剑玩家
+        String ip = om.getServerIp();
+        List<OnlineManager.OnlinePlayer> players = om.queryOnline(ip == null ? "" : ip);
         if (players.isEmpty()) {
-            a.sendMessage("§e当前服务器暂无在线玩家数据。");
+            a.sendMessage("§e暂无已绑定官网账号的玄剑玩家在线。");
             return Command.SINGLE_SUCCESS;
         }
-        StringBuilder sb = new StringBuilder("§e===== 在线玩家（" + players.size() + "）=====\n");
+        StringBuilder sb = new StringBuilder("§e===== 玄剑在线玩家（" + players.size() + "）=====\n");
         for (OnlineManager.OnlinePlayer p : players) {
             sb.append("§f").append(p.name).append("\n");
         }
