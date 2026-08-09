@@ -314,10 +314,32 @@ public class XjCommand<S> {
     private int online(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
+
+        // 客户端执行者：直接读取当前服务器的本地玩家列表（无需服务器装模组）
+        List<String> local = a.getLocalOnlinePlayers();
+        if (local != null) {
+            if (local.isEmpty()) {
+                a.sendMessage("§e当前服务器暂无在线玩家。");
+            } else {
+                StringBuilder sb = new StringBuilder("§e===== 当前服务器在线玩家（" + local.size() + "）=====\n");
+                for (String name : local) {
+                    sb.append("§f").append(name).append("\n");
+                }
+                a.sendMessage(sb.toString());
+            }
+            return Command.SINGLE_SUCCESS;
+        }
+
+        // 服务端执行者：查询官网聚合的在线数据（需服务器模组上报 + 配置 server.ip）
         OnlineManager om = mod.getOnlineManager();
-        List<OnlineManager.OnlinePlayer> players = om.queryOnline(om.getServerIp() == null ? "" : om.getServerIp());
+        String ip = om.getServerIp();
+        if (ip == null || ip.isBlank()) {
+            a.sendMessage("§e未配置服务器IP（config/xuanjianmod.properties 的 server.ip），无法查询在线玩家。");
+            return Command.SINGLE_SUCCESS;
+        }
+        List<OnlineManager.OnlinePlayer> players = om.queryOnline(ip);
         if (players.isEmpty()) {
-            a.sendMessage("§e当前服务器暂无在线玩家数据。");
+            a.sendMessage("§e该服务器暂无在线数据（需服务器安装模组并配置密钥后上报）。");
             return Command.SINGLE_SUCCESS;
         }
         StringBuilder sb = new StringBuilder("§e===== 在线玩家（" + players.size() + "）=====\n");

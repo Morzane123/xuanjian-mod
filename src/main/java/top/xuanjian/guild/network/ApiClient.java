@@ -80,6 +80,16 @@ public class ApiClient {
                 if (response.body() == null || response.body().isBlank()) return new JsonObject();
                 return JsonParser.parseString(response.body()).getAsJsonObject();
             }
+            // 非 2xx：尝试透传后端错误信息（如 {error:"申报原因至少10个字符"}），便于玩家看到真实原因
+            try {
+                String body = response.body();
+                if (body != null && !body.isBlank()) {
+                    JsonObject err = JsonParser.parseString(body).getAsJsonObject();
+                    if (err.has("error")) return err;
+                }
+            } catch (Exception ignored) {
+                // 非 JSON 响应，忽略
+            }
             LOGGER.warn("API 请求失败 {} {} -> HTTP {}", methodOf(request), request.uri().getPath(), response.statusCode());
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) Thread.currentThread().interrupt();

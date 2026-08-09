@@ -1,5 +1,6 @@
 package top.xuanjian.guild.command;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -19,4 +20,12 @@ public interface CommandActor {
 
     /** 执行者是否有效（如尚未进入世界 / 不在服务器内） */
     boolean isValid();
+
+    /**
+     * 客户端实现可返回当前所在服务器的在线玩家名列表（无需服务器装模组）；
+     * 返回 null 表示不支持，调用方回退到官网聚合查询。
+     */
+    default List<String> getLocalOnlinePlayers() {
+        return null;
+    }
 }
