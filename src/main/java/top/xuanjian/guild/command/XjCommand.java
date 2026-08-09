@@ -100,7 +100,7 @@ public class XjCommand {
         if (player == null) return 0;
         String account = StringArgumentType.getString(ctx, "account");
         BindManager bm = mod.getBindManager();
-        JsonObject resp = bm.requestBind(player.getGameProfile().getId(), player.getGameProfile().getName(), account);
+        JsonObject resp = bm.requestBind(player.getUUID(), player.getName().getString(), account);
         if (resp == null) {
             reply(ctx, "§c绑定请求失败：官网服务不可用或账号不存在");
         } else if (resp.has("error")) {
@@ -114,7 +114,7 @@ public class XjCommand {
     private int bindStatus(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         if (mod.getBindManager().isBound(uuid)) {
             reply(ctx, "§a当前已绑定官网账号。");
         } else {
@@ -126,12 +126,12 @@ public class XjCommand {
     private int checkin(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         if (!mod.getBindManager().isBound(uuid)) {
             reply(ctx, "§c请先使用 /xj bind 绑定官网账号");
             return Command.SINGLE_SUCCESS;
         }
-        JsonObject resp = mod.getCheckinManager().checkin(uuid, player.getGameProfile().getName());
+        JsonObject resp = mod.getCheckinManager().checkin(uuid, player.getName().getString());
         if (resp == null) {
             reply(ctx, "§c签到失败：官网服务不可用");
         } else if (resp.has("error")) {
@@ -147,7 +147,7 @@ public class XjCommand {
     private int taskList(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         List<JsonObject> tasks = mod.getTaskManager().listTasks(uuid);
         if (tasks.isEmpty()) {
             reply(ctx, "§e当前没有可接取的任务。");
@@ -173,7 +173,7 @@ public class XjCommand {
     private int taskMy(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         List<JsonObject> claims = mod.getTaskManager().myTasks(uuid);
         if (claims.isEmpty()) {
             reply(ctx, "§e您尚未接取任何任务。");
@@ -192,7 +192,7 @@ public class XjCommand {
     private int taskAccept(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         int id = IntegerArgumentType.getInteger(ctx, "id");
         JsonObject resp = mod.getTaskManager().accept(uuid, id);
         if (resp == null) {
@@ -208,7 +208,7 @@ public class XjCommand {
     private int taskVerify(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         int id = IntegerArgumentType.getInteger(ctx, "id");
         String code = StringArgumentType.getString(ctx, "code");
         JsonObject resp = mod.getTaskManager().verify(uuid, id, code);
@@ -226,7 +226,7 @@ public class XjCommand {
     private int cbBalance(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         if (!mod.getBindManager().isBound(uuid)) {
             reply(ctx, "§c请先使用 /xj bind 绑定官网账号");
             return Command.SINGLE_SUCCESS;
@@ -246,7 +246,7 @@ public class XjCommand {
     private int cbPay(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         if (!mod.getBindManager().isBound(uuid)) {
             reply(ctx, "§c请先使用 /xj bind 绑定官网账号");
             return Command.SINGLE_SUCCESS;
@@ -266,7 +266,7 @@ public class XjCommand {
     private int cbConfirm(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         JsonObject resp = mod.getContributionManager().confirmTransfer(uuid);
         if (resp == null) {
             reply(ctx, "§c没有待确认的转账，或已过期。");
@@ -281,7 +281,7 @@ public class XjCommand {
     private int cbCancel(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        mod.getContributionManager().cancelTransfer(player.getGameProfile().getId());
+        mod.getContributionManager().cancelTransfer(player.getUUID());
         reply(ctx, "§e已取消转账。");
         return Command.SINGLE_SUCCESS;
     }
@@ -289,7 +289,7 @@ public class XjCommand {
     private int claim(CommandContext<CommandSourceStack> ctx) {
         ServerPlayer player = getPlayer(ctx);
         if (player == null) return 0;
-        UUID uuid = player.getGameProfile().getId();
+        UUID uuid = player.getUUID();
         if (!mod.getBindManager().isBound(uuid)) {
             reply(ctx, "§c请先使用 /xj bind 绑定官网账号");
             return Command.SINGLE_SUCCESS;
