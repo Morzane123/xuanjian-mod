@@ -17,6 +17,9 @@
   "entrypoints": {
     "main": [
       "top.xuanjian.guild.XuanjianMod"
+    ],
+    "client": [
+      "top.xuanjian.guild.XuanjianModClient"
     ]
   },
   "depends": {
