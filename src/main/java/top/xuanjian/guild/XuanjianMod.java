@@ -29,8 +29,10 @@ import top.xuanjian.guild.task.TaskManager;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -189,29 +191,40 @@ public class XuanjianMod implements ModInitializer {
         LOGGER.info("[心跳] 上报 {} 名在线玩家活跃状态", onlinePlayers.size());
     }
 
-    /** 功能5+10：同步日报/决策 + 管理员审核提醒 */
+    /** 功能5+10：同步日报/决策 + 管理员审核提醒（定向发送） */
     private void doSync(MinecraftServer mcServer) {
-        // 功能5：日报/决策更新广播
+        // 功能5：日报/决策更新（仅通知已绑定官网账号的在线玩家）
         try {
             List<JsonObject> updates = updateSync.pollNew();
-            for (JsonObject u : updates) {
-                String type = u.has("type") ? u.get("type").getAsString() : "";
-                String title = u.has("title") ? u.get("title").getAsString() : "";
-                String typeText = "daily".equals(type) ? "日报" : "决策公示";
-                broadcast(mcServer, "§e[玄剑] 官网发布新" + typeText + "：§f" + title + " §7→ xuanjian.top");
+            if (!updates.isEmpty()) {
+                List<ServerPlayer> targets = new ArrayList<>();
+                for (ServerPlayer p : mcServer.getPlayerList().getPlayers()) {
+                    if (bindManager.isBound(p.getUUID())) targets.add(p);
+                }
+                for (JsonObject u : updates) {
+                    String type = u.has("type") ? u.get("type").getAsString() : "";
+                    String title = u.has("title") ? u.get("title").getAsString() : "";
+                    String typeText = "daily".equals(type) ? "日报" : "决策公示";
+                    sendTo(targets, "§e[玄剑] 官网发布新" + typeText + "：§f" + title + " §7→ xuanjian.top");
+                }
             }
         } catch (Exception e) {
             LOGGER.warn("日报/决策同步异常: {}", e.getMessage());
         }
 
-        // 功能10：新申报审核提醒（广播给在线管理员，如未绑定管理员则全体广播）
+        // 功能10：新申报审核提醒（仅通知在线的官网管理员）
         try {
             List<JsonObject> claims = adminAlertSync.pollNew();
             if (!claims.isEmpty()) {
+                Set<String> adminSet = new HashSet<>(adminAlertSync.getAdminUuids());
+                List<ServerPlayer> admins = new ArrayList<>();
+                for (ServerPlayer p : mcServer.getPlayerList().getPlayers()) {
+                    if (adminSet.contains(p.getUUID().toString())) admins.add(p);
+                }
                 for (JsonObject c : claims) {
                     String nickname = c.has("nickname") ? c.get("nickname").getAsString() : "玩家";
                     int amount = c.has("amount") ? c.get("amount").getAsInt() : 0;
-                    broadcast(mcServer, "§e[玄剑] 新的贡献点申报待审核：§f" + nickname + " §7申报 §a" + amount + " §7贡献点，请前往官网管理后台处理");
+                    sendTo(admins, "§e[玄剑] 新的贡献点申报待审核：§f" + nickname + " §7申报 §a" + amount + " §7贡献点，请前往官网管理后台处理");
                 }
             }
         } catch (Exception e) {
@@ -219,11 +232,11 @@ public class XuanjianMod implements ModInitializer {
         }
     }
 
-    private void broadcast(MinecraftServer mcServer, String msg) {
-        for (ServerPlayer p : mcServer.getPlayerList().getPlayers()) {
+    private void sendTo(List<ServerPlayer> players, String msg) {
+        for (ServerPlayer p : players) {
             p.sendSystemMessage(Component.literal(msg));
         }
-        LOGGER.info("[广播] {}", msg);
+        LOGGER.info("[定向发送] {} 人 <- {}", players.size(), msg);
     }
 
     /* ============ 访问器 ============ */
