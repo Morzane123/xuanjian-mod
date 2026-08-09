@@ -127,7 +127,8 @@ public class XjCommand<S> {
     private int bindStatus(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
-        if (mod.getBindManager().isBound(a.getUuid())) {
+        // 先同步官网绑定状态（邮件确认后本地缓存可能未更新）
+        if (mod.getBindManager().syncFromServer(a.getUuid())) {
             a.sendMessage("§a当前已绑定官网账号。");
         } else {
             a.sendMessage("§e尚未绑定，请使用 §a/xj bind <官网账号> §e完成绑定。");

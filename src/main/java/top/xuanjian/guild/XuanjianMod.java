@@ -103,6 +103,7 @@ public class XuanjianMod implements ModInitializer {
             ServerPlayer player = handler.getPlayer();
             if (player == null) return;
             UUID uuid = player.getUUID();
+            bindManager.syncFromServer(uuid); // 邮件确认后本地缓存可能未更新，先同步官网状态
             if (!bindManager.isBound(uuid)) return; // 未绑定不签到
 
             server.execute(() -> {
