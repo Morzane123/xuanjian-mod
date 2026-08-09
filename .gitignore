@@ -17,7 +17,7 @@ bin/
 Thumbs.db
 
 # 运行时数据
-config/
+/config/
 run/
 logs/
 *.log
