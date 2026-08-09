@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "xuanjianmod",
+  "version": "${version}",
+  "name": "Xuanjian Guild Mod",
+  "description": "我的世界玄剑公会官网联动模组：游戏内签到、任务、贡献点转账、申报、在线玩家、日报/决策同步等。",
+  "authors": [
+    "Northland Studio"
+  ],
+  "contact": {
+    "homepage": "https://xuanjian.top",
+    "sources": "https://github.com/Morzane123/xuanjian-mod"
+  },
+  "license": "MIT",
+  "icon": "assets/xuanjianmod/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "top.xuanjian.guild.XuanjianMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.1",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
