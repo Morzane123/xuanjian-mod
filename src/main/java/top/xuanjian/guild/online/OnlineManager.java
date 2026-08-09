@@ -30,6 +30,10 @@ public class OnlineManager {
         this.serverIp = serverIp;
     }
 
+    public String getServerIp() {
+        return serverIp;
+    }
+
     /** 上报本服务器在线玩家（由心跳定时调用） */
     public void reportOnline(List<OnlinePlayer> players) {
         if (serverIp == null || serverIp.isBlank()) return;
