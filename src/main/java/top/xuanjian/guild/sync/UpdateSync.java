@@ -16,6 +16,8 @@ public class UpdateSync {
     private static final Logger LOGGER = LoggerFactory.getLogger("xuanjianmod");
     private final ApiClient api;
     private int lastId = 0;
+    /** 首次拉取仅推进游标不播报，避免模组启动/服务器重启后把历史日报/决策全量提示一遍 */
+    private boolean initialized = false;
 
     public UpdateSync(ApiClient api) {
         this.api = api;
@@ -39,6 +41,10 @@ public class UpdateSync {
             }
         } catch (Exception e) {
             LOGGER.warn("解析更新同步失败: {}", e.getMessage());
+        }
+        if (!initialized) {
+            initialized = true;
+            return new ArrayList<>();
         }
         return result;
     }

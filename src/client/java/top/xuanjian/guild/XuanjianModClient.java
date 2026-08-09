@@ -4,29 +4,38 @@ import com.google.gson.JsonObject;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.xuanjian.guild.command.ClientCommandActor;
 import top.xuanjian.guild.command.XjCommand;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * 客户端入口：将 /xj 命令注册到客户端命令树（无需服务器安装模组即可使用），
- * 并实现客户端自动签到。个人功能（绑定/签到/任务/贡献点/申报/在线查看）全部直连官网 API。
+ * 并实现客户端自动签到、心跳上报、日报/决策同步与申报审核提醒（仅本地提示当前玩家）。
+ * 个人功能（绑定/签到/任务/贡献点/申报/在线查看）全部直连官网 API。
  */
 public class XuanjianModClient implements ClientModInitializer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("xuanjianmod");
 
+    private XuanjianMod mod;
+    private long tickCounter = 0;
+
     @Override
     public void onInitializeClient() {
-        XuanjianMod mod = XuanjianMod.getInstance();
+        mod = XuanjianMod.getInstance();
         if (mod == null) {
-            LOGGER.warn("[xuanjianmod] 主入口未初始化，客户端命令注册跳过");
+            LOGGER.warn("[xuanjianmod] 主入口未初始化，客户端功能跳过");
             return;
         }
 
@@ -73,6 +82,76 @@ public class XuanjianModClient implements ClientModInitializer {
                     }
                 });
             });
+        });
+
+        // 客户端周期任务：在线即心跳上报 + 日报/决策同步 + 申报审核提醒
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player == null) {
+                tickCounter = 0;
+                return;
+            }
+            tickCounter++;
+            if (tickCounter % 20 != 0) return; // 每秒一次
+            long seconds = tickCounter / 20;
+            int heartbeatInterval = Math.max(mod.getConfig().getHeartbeatInterval(), 30);
+            int syncInterval = Math.max(mod.getConfig().getSyncInterval(), 30);
+            if (seconds % heartbeatInterval == 0) {
+                doHeartbeat(client);
+            }
+            if (seconds % syncInterval == 0) {
+                doSync(client);
+            }
+        });
+    }
+
+    /** 心跳上报：检测玩家在线即周期上报（仅已绑定角色参与官网活跃统计） */
+    private void doHeartbeat(MinecraftClient client) {
+        UUID uuid = client.player.getUUID();
+        if (!mod.getBindManager().isBound(uuid)) return;
+        Map<String, Object> body = new HashMap<>();
+        body.put("players", List.of(uuid.toString()));
+        CompletableFuture.runAsync(() -> mod.getApi().post("/api/mod/heartbeat", body));
+    }
+
+    /** 日报/决策同步 + 申报审核提醒（本地聊天栏提示当前玩家） */
+    private void doSync(MinecraftClient client) {
+        final UUID uuid = client.player.getUUID();
+        CompletableFuture.runAsync(() -> {
+            // 功能5：日报/决策更新（仅已绑定玩家才提示）
+            try {
+                if (mod.getBindManager().isBound(uuid)) {
+                    List<JsonObject> updates = mod.getUpdateSync().pollNew();
+                    for (JsonObject u : updates) {
+                        String type = u.has("type") ? u.get("type").getAsString() : "";
+                        String title = u.has("title") ? u.get("title").getAsString() : "";
+                        String typeText = "daily".equals(type) ? "日报" : "决策公示";
+                        show(client, "§e[玄剑] 官网发布新" + typeText + "：§f" + title + " §7→ xuanjian.top");
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.warn("客户端日报同步异常: {}", e.getMessage());
+            }
+
+            // 功能10：新申报审核提醒（带 uuid，仅官网管理员能拉取到）
+            try {
+                List<JsonObject> claims = mod.getAdminAlertSync().pollNew(uuid.toString());
+                for (JsonObject c : claims) {
+                    String nickname = c.has("nickname") ? c.get("nickname").getAsString() : "玩家";
+                    int amount = c.has("amount") ? c.get("amount").getAsInt() : 0;
+                    show(client, "§e[玄剑] 新的贡献点申报待审核：§f" + nickname + " §7申报 §a" + amount + " §7贡献点，请前往官网管理后台处理");
+                }
+            } catch (Exception e) {
+                LOGGER.warn("客户端申报提醒同步异常: {}", e.getMessage());
+            }
+        });
+    }
+
+    /** 回渲染线程显示消息 */
+    private void show(MinecraftClient client, String msg) {
+        client.execute(() -> {
+            if (client.player != null) {
+                client.player.displayClientMessage(Component.literal(msg), false);
+            }
         });
     }
 }
