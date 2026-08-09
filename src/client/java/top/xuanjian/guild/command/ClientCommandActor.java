@@ -33,7 +33,7 @@ public class ClientCommandActor implements CommandActor {
 
     @Override
     public void sendMessage(String msg) {
-        player.sendSystemMessage(Component.literal(msg));
+        player.displayClientMessage(Component.literal(msg), false);
     }
 
     @Override

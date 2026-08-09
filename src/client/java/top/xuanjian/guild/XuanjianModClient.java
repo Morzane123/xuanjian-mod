@@ -63,22 +63,22 @@ public class XuanjianModClient implements ClientModInitializer {
                 client.execute(() -> {
                     if (client.player == null) return;
                     if (resp == null) {
-                        client.player.sendSystemMessage(
-                                Component.literal("§c[玄剑] 自动签到失败：官网服务不可用"));
+                        client.player.displayClientMessage(
+                                Component.literal("§c[玄剑] 自动签到失败：官网服务不可用"), false);
                     } else if (resp.has("error")) {
                         String err = resp.get("error").getAsString();
                         if (err.contains("今日已签到")) {
-                            client.player.sendSystemMessage(
-                                    Component.literal("§7[玄剑] 今日已在官网签到"));
+                            client.player.displayClientMessage(
+                                    Component.literal("§7[玄剑] 今日已在官网签到"), false);
                         } else {
-                            client.player.sendSystemMessage(
-                                    Component.literal("§c[玄剑] 自动签到失败：" + err));
+                            client.player.displayClientMessage(
+                                    Component.literal("§c[玄剑] 自动签到失败：" + err), false);
                         }
                     } else {
                         int reward = resp.has("rewardPoints") ? resp.get("rewardPoints").getAsInt() : 0;
                         int total = resp.has("totalContribution") ? resp.get("totalContribution").getAsInt() : 0;
-                        client.player.sendSystemMessage(
-                                Component.literal("§a[玄剑] 官网签到成功，获得 " + reward + " 贡献点（余额 " + total + "）"));
+                        client.player.displayClientMessage(
+                                Component.literal("§a[玄剑] 官网签到成功，获得 " + reward + " 贡献点（余额 " + total + "）"), false);
                     }
                 });
             });
@@ -150,7 +150,7 @@ public class XuanjianModClient implements ClientModInitializer {
     private void show(Minecraft client, String msg) {
         client.execute(() -> {
             if (client.player != null) {
-                client.player.sendSystemMessage(Component.literal(msg));
+                client.player.displayClientMessage(Component.literal(msg), false);
             }
         });
     }
