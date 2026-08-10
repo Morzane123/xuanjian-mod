@@ -31,4 +31,12 @@ public interface CommandActor {
     default void runAsync(Runnable task) {
         CompletableFuture.runAsync(task);
     }
+
+    /** 打开信息面板（仅客户端实现有效，服务端为 no-op） */
+    default void openGui() {
+    }
+
+    /** 打开设置页（仅客户端实现有效，服务端为 no-op） */
+    default void openSettings() {
+    }
 }

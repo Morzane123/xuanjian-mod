@@ -1,5 +1,6 @@
 package top.xuanjian.guild.command;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -65,7 +66,9 @@ public class XjCommand<S> {
                         .then(RequiredArgumentBuilder.<S, Integer>argument("amount", IntegerArgumentType.integer(1))
                                 .then(RequiredArgumentBuilder.<S, String>argument("reason", StringArgumentType.greedyString())
                                         .executes(this::claim))))
-                .then(LiteralArgumentBuilder.<S>literal("online").executes(this::online));
+                .then(LiteralArgumentBuilder.<S>literal("online").executes(this::online))
+                .then(LiteralArgumentBuilder.<S>literal("gui").executes(this::gui))
+                .then(LiteralArgumentBuilder.<S>literal("settings").executes(this::settings));
     }
 
     /* ============ 执行者解析 ============ */
@@ -98,6 +101,7 @@ public class XjCommand<S> {
                 + "§a/xj claim <数量> <理由> §f贡献点申报\n"
                 + "§a/xj online §f查看在线玩家\n"
                 + "§a/xj gui §f打开信息面板\n"
+                + "§a/xj settings §f打开设置页\n"
                 + "§a/xj help §f帮助\n"
                 + "§a/xj version §f版本");
         return Command.SINGLE_SUCCESS;
@@ -332,24 +336,48 @@ public class XjCommand<S> {
         return Command.SINGLE_SUCCESS;
     }
 
+    /** /xj online：查询官网在线的玄剑玩家（后端按 mod_bindings 绑定过滤 + TTL 过期过滤） */
     private int online(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
         a.runAsync(() -> {
-            OnlineManager om = mod.getOnlineManager();
-            // 服务端配置了 server.ip 则查本服；客户端/未配置则查全网已绑定玄剑玩家
-            String ip = om.getServerIp();
-            List<OnlineManager.OnlinePlayer> players = om.queryOnline(ip == null ? "" : ip);
-            if (players.isEmpty()) {
-                a.sendMessage("§e暂无已绑定官网账号的玄剑玩家在线。");
+            if (!mod.getBindManager().isBound(a.getUuid())) {
+                a.sendMessage("§c请先使用 /xj bind 绑定官网账号");
                 return;
             }
-            StringBuilder sb = new StringBuilder("§e===== 玄剑在线玩家（" + players.size() + "）=====\n");
-            for (OnlineManager.OnlinePlayer p : players) {
-                sb.append("§f").append(p.name).append("\n");
+            JsonObject resp = mod.getApi().get("/api/mod/online");
+            if (resp == null || !resp.has("players")) {
+                a.sendMessage("§c在线列表查询失败：官网服务不可用");
+                return;
             }
-            a.sendMessage(sb.toString());
+            JsonArray arr = resp.getAsJsonArray("players");
+            if (arr.size() == 0) {
+                a.sendMessage("§e当前没有在线的玄剑玩家。");
+                return;
+            }
+            StringBuilder sb = new StringBuilder("§e===== 在线玄剑玩家（" + arr.size() + "人）=====\n");
+            for (int i = 0; i < arr.size(); i++) {
+                JsonObject o = arr.get(i).getAsJsonObject();
+                String name = o.has("name") ? o.get("name").getAsString() : "?";
+                String server = o.has("server") ? o.get("server").getAsString() : "";
+                sb.append("§f").append(name).append(server.isEmpty() ? "" : " §7@" + server).append("\n");
+            }
+            a.sendMessage(sb.toString().stripTrailing());
         });
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int gui(CommandContext<S> ctx) {
+        CommandActor a = actor(ctx);
+        if (!usable(a)) return 0;
+        a.openGui();
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int settings(CommandContext<S> ctx) {
+        CommandActor a = actor(ctx);
+        if (!usable(a)) return 0;
+        a.openSettings();
         return Command.SINGLE_SUCCESS;
     }
 }
