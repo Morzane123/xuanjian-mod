@@ -120,7 +120,8 @@ public class XuanjianInfoScreen extends Screen {
         int y = 26;
         for (String line : lines) {
             StringWidget sw = new StringWidget(16, y, this.width - 32, 12,
-                    Component.literal(textOf(line)), this.font).setColor(colorOf(line));
+                    Component.literal(textOf(line)), this.font);
+            sw.setFGColor(colorOf(line));
             this.addRenderableWidget(sw);
             textWidgets.add(sw);
             y += 14;
