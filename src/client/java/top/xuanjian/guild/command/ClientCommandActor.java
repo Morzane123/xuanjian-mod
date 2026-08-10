@@ -1,5 +1,6 @@
 package top.xuanjian.guild.command;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
@@ -33,7 +34,8 @@ public class ClientCommandActor implements CommandActor {
 
     @Override
     public void sendMessage(String msg) {
-        player.sendSystemMessage(Component.literal(msg));
+        // 后台线程调用时回渲染线程显示，避免跨线程操作客户端
+        Minecraft.getInstance().execute(() -> player.sendSystemMessage(Component.literal(msg)));
     }
 
     @Override

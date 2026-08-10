@@ -74,7 +74,7 @@ public class BindManager {
     }
 
     /** 查询是否已绑定（本地缓存） */
-    public boolean isBound(UUID uuid) {
+    public synchronized boolean isBound(UUID uuid) {
         return bindings.containsKey(uuid.toString());
     }
 
@@ -83,7 +83,7 @@ public class BindManager {
      * 邮件确认在官网完成，本地 bindings.json 需要主动同步才能识别已绑定。
      * @return 同步后是否已绑定
      */
-    public boolean syncFromServer(UUID uuid) {
+    public synchronized boolean syncFromServer(UUID uuid) {
         try {
             JsonObject resp = getBindStatus(uuid);
             if (resp == null) return isBound(uuid); // 网络失败：沿用本地缓存
@@ -102,13 +102,13 @@ public class BindManager {
     }
 
     /** 记录绑定成功（本地缓存） */
-    public void recordBinding(UUID uuid, String accountId) {
+    public synchronized void recordBinding(UUID uuid, String accountId) {
         bindings.put(uuid.toString(), accountId);
         save();
     }
 
     /** 解除绑定 */
-    public void removeBinding(UUID uuid) {
+    public synchronized void removeBinding(UUID uuid) {
         if (bindings.remove(uuid.toString()) != null) save();
     }
 }

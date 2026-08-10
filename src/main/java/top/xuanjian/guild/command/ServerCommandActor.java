@@ -2,6 +2,7 @@ package top.xuanjian.guild.command;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.UUID;
@@ -12,15 +13,18 @@ import java.util.UUID;
 public class ServerCommandActor implements CommandActor {
 
     private final ServerPlayer player;
+    private final MinecraftServer server;
 
-    private ServerCommandActor(ServerPlayer player) {
+    private ServerCommandActor(ServerPlayer player, MinecraftServer server) {
         this.player = player;
+        this.server = server;
     }
 
     /** 从命令上下文解析；非玩家来源（控制台/命令方块）返回 null */
     public static ServerCommandActor from(CommandSourceStack source) {
         try {
-            return new ServerCommandActor(source.getPlayerOrException());
+            ServerPlayer player = source.getPlayerOrException();
+            return new ServerCommandActor(player, source.getServer());
         } catch (Exception e) {
             return null;
         }
@@ -38,7 +42,8 @@ public class ServerCommandActor implements CommandActor {
 
     @Override
     public void sendMessage(String msg) {
-        player.sendSystemMessage(Component.literal(msg));
+        // 后台线程调用时切回服务器线程发送
+        server.execute(() -> player.sendSystemMessage(Component.literal(msg)));
     }
 
     @Override

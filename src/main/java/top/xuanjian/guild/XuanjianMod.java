@@ -168,7 +168,7 @@ public class XuanjianMod implements ModInitializer {
         });
     }
 
-    /** 功能7：上报活跃心跳与在线玩家 */
+    /** 功能7：上报活跃心跳（在线列表已改由客户端上下线上报，服务端不再上报 mod_online） */
     private void doHeartbeat(MinecraftServer mcServer) {
         if (api.getBaseUrl() == null || api.getBaseUrl().isBlank()) return;
 
@@ -180,9 +180,6 @@ public class XuanjianMod implements ModInitializer {
             lastHeartbeat.put(uuid, now);
             onlinePlayers.add(new OnlineManager.OnlinePlayer(uuid, name));
         }
-
-        // 上报在线玩家（仅配置了 serverIp 时）
-        onlineManager.reportOnline(onlinePlayers);
 
         // 活跃心跳上报
         Map<String, Object> body = new HashMap<>();
