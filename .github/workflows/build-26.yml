@@ -29,8 +29,11 @@ jobs:
         run: |
           gradle build --no-daemon --stacktrace > gradle-build.log 2>&1 || BUILD_FAILED=1
           if [ -n "$BUILD_FAILED" ]; then
-            echo "===== GRADLE BUILD FAILED, LAST 150 LINES =====" >&2
-            tail -n 150 gradle-build.log >&2
+            echo "===== GRADLE BUILD FAILED ====="
+            grep -E "FAILURE|error:|Error:|Could not|could not resolve|No matching|not found|Exception|What went wrong|> Task" gradle-build.log | tail -n 50
+            echo "===== LAST 20 LINES ====="
+            tail -n 20 gradle-build.log
+            echo "===== END ====="
             exit 1
           fi
 
