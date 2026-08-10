@@ -3,7 +3,7 @@ package top.xuanjian.guild.gui;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
  * 玄剑公会信息面板（vanilla Screen，不依赖其他 Mod）。
  * /xj gui 打开：展示绑定状态、贡献点余额、当前在线的玄剑玩家。
  * 网络数据在后台线程加载，渲染线程刷新，避免卡顿。
+ * 适配 Minecraft 26.2：渲染入口为 extractRenderState(GuiGraphicsExtractor)，文本用 graphics.text(...)。
  */
 public class XuanjianInfoScreen extends Screen {
 
@@ -95,11 +96,11 @@ public class XuanjianInfoScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
-        super.render(gui, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
         int y = 26;
         for (String line : lines) {
-            gui.drawString(this.font, textOf(line), 16, y, colorOf(line));
+            graphics.text(this.font, textOf(line), 16, y, colorOf(line), true);
             y += 14;
         }
     }

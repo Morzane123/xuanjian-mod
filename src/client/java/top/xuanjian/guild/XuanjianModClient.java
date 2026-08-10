@@ -136,8 +136,8 @@ public class XuanjianModClient implements ClientModInitializer {
     private String currentServer(Minecraft client) {
         try {
             ServerData data = client.getCurrentServer();
-            if (data != null && data.address != null && !data.address.isBlank()) {
-                return data.address;
+            if (data != null && data.ip != null && !data.ip.isBlank()) {
+                return data.ip;
             }
         } catch (Exception e) {
             LOGGER.warn("获取服务器地址失败: {}", e.getMessage());
