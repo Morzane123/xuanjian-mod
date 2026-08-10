@@ -8,6 +8,7 @@ import top.xuanjian.guild.network.ApiClient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 贡献点余额查询与转账（转账需二次确认：先创建待确认转账，再确认执行）
@@ -15,8 +16,8 @@ import java.util.UUID;
 public class ContributionManager {
     private static final Logger LOGGER = LoggerFactory.getLogger("xuanjianmod");
 
-    /** 待确认的转账：uuid -> 目标玩家名 */
-    private final Map<UUID, PendingTransfer> pendingTransfers = new HashMap<>();
+    /** 待确认的转账：uuid -> 目标玩家名（并发安全：命令异步化后多线程访问） */
+    private final Map<UUID, PendingTransfer> pendingTransfers = new ConcurrentHashMap<>();
     private final ApiClient api;
 
     public ContributionManager(ApiClient api) {

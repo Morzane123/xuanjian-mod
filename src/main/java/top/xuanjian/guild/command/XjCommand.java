@@ -1,5 +1,6 @@
 package top.xuanjian.guild.command;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -22,6 +23,7 @@ import java.util.function.Function;
  * - 服务端注册 CommandRegistrationCallback，使用 ServerCommandActor（可全服广播）
  * - 客户端注册 ClientCommandRegistrationCallback，使用 ClientCommandActor（本地聊天栏显示）
  * 业务逻辑完全复用，仅执行者不同。
+ * 所有涉及网络请求的命令通过 runAsync 在后台线程执行，避免阻塞游戏主线程导致卡顿。
  */
 public class XjCommand<S> {
 
@@ -64,7 +66,9 @@ public class XjCommand<S> {
                         .then(RequiredArgumentBuilder.<S, Integer>argument("amount", IntegerArgumentType.integer(1))
                                 .then(RequiredArgumentBuilder.<S, String>argument("reason", StringArgumentType.greedyString())
                                         .executes(this::claim))))
-                .then(LiteralArgumentBuilder.<S>literal("online").executes(this::online));
+                .then(LiteralArgumentBuilder.<S>literal("online").executes(this::online))
+                .then(LiteralArgumentBuilder.<S>literal("gui").executes(this::gui))
+                .then(LiteralArgumentBuilder.<S>literal("settings").executes(this::settings));
     }
 
     /* ============ 执行者解析 ============ */
@@ -96,6 +100,8 @@ public class XjCommand<S> {
                 + "§a/xj cb cancel §f取消转账\n"
                 + "§a/xj claim <数量> <理由> §f贡献点申报\n"
                 + "§a/xj online §f查看在线玩家\n"
+                + "§a/xj gui §f打开信息面板\n"
+                + "§a/xj settings §f打开设置页\n"
                 + "§a/xj help §f帮助\n"
                 + "§a/xj version §f版本");
         return Command.SINGLE_SUCCESS;
@@ -112,15 +118,16 @@ public class XjCommand<S> {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
         String account = StringArgumentType.getString(ctx, "account");
-        BindManager bm = mod.getBindManager();
-        JsonObject resp = bm.requestBind(a.getUuid(), a.getPlayerName(), account);
-        if (resp == null) {
-            a.sendMessage("§c绑定请求失败：官网服务不可用或账号不存在");
-        } else if (resp.has("error")) {
-            a.sendMessage("§c" + resp.get("error").getAsString());
-        } else {
-            a.sendMessage("§a绑定确认邮件已发送至官网账号「" + account + "」的邮箱，请查收并点击确认链接完成绑定。");
-        }
+        a.runAsync(() -> {
+            JsonObject resp = mod.getBindManager().requestBind(a.getUuid(), a.getPlayerName(), account);
+            if (resp == null) {
+                a.sendMessage("§c绑定请求失败：官网服务不可用或账号不存在");
+            } else if (resp.has("error")) {
+                a.sendMessage("§c" + resp.get("error").getAsString());
+            } else {
+                a.sendMessage("§a绑定确认邮件已发送至官网账号「" + account + "」的邮箱，请查收并点击确认链接完成绑定。");
+            }
+        });
         return Command.SINGLE_SUCCESS;
     }
 
@@ -128,74 +135,82 @@ public class XjCommand<S> {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
         // 先同步官网绑定状态（邮件确认后本地缓存可能未更新）
-        if (mod.getBindManager().syncFromServer(a.getUuid())) {
-            a.sendMessage("§a当前已绑定官网账号。");
-        } else {
-            a.sendMessage("§e尚未绑定，请使用 §a/xj bind <官网账号> §e完成绑定。");
-        }
+        a.runAsync(() -> {
+            if (mod.getBindManager().syncFromServer(a.getUuid())) {
+                a.sendMessage("§a当前已绑定官网账号。");
+            } else {
+                a.sendMessage("§e尚未绑定，请使用 §a/xj bind <官网账号> §e完成绑定。");
+            }
+        });
         return Command.SINGLE_SUCCESS;
     }
 
     private int checkin(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
-        if (!mod.getBindManager().isBound(a.getUuid())) {
-            a.sendMessage("§c请先使用 /xj bind 绑定官网账号");
-            return Command.SINGLE_SUCCESS;
-        }
-        JsonObject resp = mod.getCheckinManager().checkin(a.getUuid(), a.getPlayerName());
-        if (resp == null) {
-            a.sendMessage("§c签到失败：官网服务不可用");
-        } else if (resp.has("error")) {
-            a.sendMessage("§c" + resp.get("error").getAsString());
-        } else {
-            int reward = resp.has("rewardPoints") ? resp.get("rewardPoints").getAsInt() : 0;
-            int total = resp.has("totalContribution") ? resp.get("totalContribution").getAsInt() : 0;
-            a.sendMessage("§a签到成功！获得 §e" + reward + " §a贡献点，当前余额 §e" + total);
-        }
+        a.runAsync(() -> {
+            if (!mod.getBindManager().isBound(a.getUuid())) {
+                a.sendMessage("§c请先使用 /xj bind 绑定官网账号");
+                return;
+            }
+            JsonObject resp = mod.getCheckinManager().checkin(a.getUuid(), a.getPlayerName());
+            if (resp == null) {
+                a.sendMessage("§c签到失败：官网服务不可用");
+            } else if (resp.has("error")) {
+                a.sendMessage("§c" + resp.get("error").getAsString());
+            } else {
+                int reward = resp.has("rewardPoints") ? resp.get("rewardPoints").getAsInt() : 0;
+                int total = resp.has("totalContribution") ? resp.get("totalContribution").getAsInt() : 0;
+                a.sendMessage("§a签到成功！获得 §e" + reward + " §a贡献点，当前余额 §e" + total);
+            }
+        });
         return Command.SINGLE_SUCCESS;
     }
 
     private int taskList(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
-        List<JsonObject> tasks = mod.getTaskManager().listTasks(a.getUuid());
-        if (tasks.isEmpty()) {
-            a.sendMessage("§e当前没有可接取的任务。");
-            return Command.SINGLE_SUCCESS;
-        }
-        StringBuilder sb = new StringBuilder("§e===== 官方任务列表 =====\n");
-        for (JsonObject t : tasks) {
-            int id = t.get("id").getAsInt();
-            String title = t.has("title") ? t.get("title").getAsString() : "";
-            int reward = t.has("reward") ? t.get("reward").getAsInt() : 0;
-            String status = t.has("myStatus") && !t.get("myStatus").isJsonNull() ? t.get("myStatus").getAsString() : "";
-            sb.append("§a[").append(id).append("] §f").append(title)
-              .append(" §e(+").append(reward).append("点)");
-            if (!status.isEmpty()) {
-                sb.append(" §7[").append(status.equals("pending") ? "已接取" : "已完成").append("]");
+        a.runAsync(() -> {
+            List<JsonObject> tasks = mod.getTaskManager().listTasks(a.getUuid());
+            if (tasks.isEmpty()) {
+                a.sendMessage("§e当前没有可接取的任务。");
+                return;
             }
-            sb.append("\n");
-        }
-        a.sendMessage(sb.toString());
+            StringBuilder sb = new StringBuilder("§e===== 官方任务列表 =====\n");
+            for (JsonObject t : tasks) {
+                int id = t.get("id").getAsInt();
+                String title = t.has("title") ? t.get("title").getAsString() : "";
+                int reward = t.has("reward") ? t.get("reward").getAsInt() : 0;
+                String status = t.has("myStatus") && !t.get("myStatus").isJsonNull() ? t.get("myStatus").getAsString() : "";
+                sb.append("§a[").append(id).append("] §f").append(title)
+                  .append(" §e(+").append(reward).append("点)");
+                if (!status.isEmpty()) {
+                    sb.append(" §7[").append(status.equals("pending") ? "已接取" : "已完成").append("]");
+                }
+                sb.append("\n");
+            }
+            a.sendMessage(sb.toString());
+        });
         return Command.SINGLE_SUCCESS;
     }
 
     private int taskMy(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
-        List<JsonObject> claims = mod.getTaskManager().myTasks(a.getUuid());
-        if (claims.isEmpty()) {
-            a.sendMessage("§e您尚未接取任何任务。");
-            return Command.SINGLE_SUCCESS;
-        }
-        StringBuilder sb = new StringBuilder("§e===== 我的任务 =====\n");
-        for (JsonObject c : claims) {
-            String title = c.has("title") ? c.get("title").getAsString() : "";
-            String status = c.has("status") ? c.get("status").getAsString() : "";
-            sb.append("§f").append(title).append(" §7[").append(status).append("]\n");
-        }
-        a.sendMessage(sb.toString());
+        a.runAsync(() -> {
+            List<JsonObject> claims = mod.getTaskManager().myTasks(a.getUuid());
+            if (claims.isEmpty()) {
+                a.sendMessage("§e您尚未接取任何任务。");
+                return;
+            }
+            StringBuilder sb = new StringBuilder("§e===== 我的任务 =====\n");
+            for (JsonObject c : claims) {
+                String title = c.has("title") ? c.get("title").getAsString() : "";
+                String status = c.has("status") ? c.get("status").getAsString() : "";
+                sb.append("§f").append(title).append(" §7[").append(status).append("]\n");
+            }
+            a.sendMessage(sb.toString());
+        });
         return Command.SINGLE_SUCCESS;
     }
 
@@ -203,14 +218,16 @@ public class XjCommand<S> {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
         int id = IntegerArgumentType.getInteger(ctx, "id");
-        JsonObject resp = mod.getTaskManager().accept(a.getUuid(), id);
-        if (resp == null) {
-            a.sendMessage("§c接取失败：官网服务不可用");
-        } else if (resp.has("error")) {
-            a.sendMessage("§c" + resp.get("error").getAsString());
-        } else {
-            a.sendMessage("§a任务接取成功！完成任务请使用 /xj task verify " + id + " <验证码>");
-        }
+        a.runAsync(() -> {
+            JsonObject resp = mod.getTaskManager().accept(a.getUuid(), id);
+            if (resp == null) {
+                a.sendMessage("§c接取失败：官网服务不可用");
+            } else if (resp.has("error")) {
+                a.sendMessage("§c" + resp.get("error").getAsString());
+            } else {
+                a.sendMessage("§a任务接取成功！完成任务请使用 /xj task verify " + id + " <验证码>");
+            }
+        });
         return Command.SINGLE_SUCCESS;
     }
 
@@ -219,34 +236,38 @@ public class XjCommand<S> {
         if (!usable(a)) return 0;
         int id = IntegerArgumentType.getInteger(ctx, "id");
         String code = StringArgumentType.getString(ctx, "code");
-        JsonObject resp = mod.getTaskManager().verify(a.getUuid(), id, code);
-        if (resp == null) {
-            a.sendMessage("§c提交失败：官网服务不可用");
-        } else if (resp.has("error")) {
-            a.sendMessage("§c" + resp.get("error").getAsString());
-        } else {
-            int reward = resp.has("reward") ? resp.get("reward").getAsInt() : 0;
-            a.sendMessage("§a任务完成！获得 §e" + reward + " §a贡献点");
-        }
+        a.runAsync(() -> {
+            JsonObject resp = mod.getTaskManager().verify(a.getUuid(), id, code);
+            if (resp == null) {
+                a.sendMessage("§c提交失败：官网服务不可用");
+            } else if (resp.has("error")) {
+                a.sendMessage("§c" + resp.get("error").getAsString());
+            } else {
+                int reward = resp.has("reward") ? resp.get("reward").getAsInt() : 0;
+                a.sendMessage("§a任务完成！获得 §e" + reward + " §a贡献点");
+            }
+        });
         return Command.SINGLE_SUCCESS;
     }
 
     private int cbBalance(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
-        if (!mod.getBindManager().isBound(a.getUuid())) {
-            a.sendMessage("§c请先使用 /xj bind 绑定官网账号");
-            return Command.SINGLE_SUCCESS;
-        }
-        JsonObject resp = mod.getContributionManager().getBalance(a.getUuid());
-        if (resp == null) {
-            a.sendMessage("§c余额查询失败：官网服务不可用");
-        } else if (resp.has("error")) {
-            a.sendMessage("§c" + resp.get("error").getAsString());
-        } else {
-            int balance = resp.has("balance") ? resp.get("balance").getAsInt() : 0;
-            a.sendMessage("§e当前贡献点余额：§a" + balance);
-        }
+        a.runAsync(() -> {
+            if (!mod.getBindManager().isBound(a.getUuid())) {
+                a.sendMessage("§c请先使用 /xj bind 绑定官网账号");
+                return;
+            }
+            JsonObject resp = mod.getContributionManager().getBalance(a.getUuid());
+            if (resp == null) {
+                a.sendMessage("§c余额查询失败：官网服务不可用");
+            } else if (resp.has("error")) {
+                a.sendMessage("§c" + resp.get("error").getAsString());
+            } else {
+                int balance = resp.has("balance") ? resp.get("balance").getAsInt() : 0;
+                a.sendMessage("§e当前贡献点余额：§a" + balance);
+            }
+        });
         return Command.SINGLE_SUCCESS;
     }
 
@@ -272,14 +293,16 @@ public class XjCommand<S> {
     private int cbConfirm(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
-        JsonObject resp = mod.getContributionManager().confirmTransfer(a.getUuid());
-        if (resp == null) {
-            a.sendMessage("§c没有待确认的转账，或已过期。");
-        } else if (resp.has("error")) {
-            a.sendMessage("§c" + resp.get("error").getAsString());
-        } else {
-            a.sendMessage("§a转账成功！");
-        }
+        a.runAsync(() -> {
+            JsonObject resp = mod.getContributionManager().confirmTransfer(a.getUuid());
+            if (resp == null) {
+                a.sendMessage("§c没有待确认的转账，或已过期。");
+            } else if (resp.has("error")) {
+                a.sendMessage("§c" + resp.get("error").getAsString());
+            } else {
+                a.sendMessage("§a转账成功！");
+            }
+        });
         return Command.SINGLE_SUCCESS;
     }
 
@@ -294,39 +317,67 @@ public class XjCommand<S> {
     private int claim(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
-        if (!mod.getBindManager().isBound(a.getUuid())) {
-            a.sendMessage("§c请先使用 /xj bind 绑定官网账号");
-            return Command.SINGLE_SUCCESS;
-        }
         int amount = IntegerArgumentType.getInteger(ctx, "amount");
         String reason = StringArgumentType.getString(ctx, "reason");
-        JsonObject resp = mod.getClaimManager().submit(a.getUuid(), amount, reason);
-        if (resp == null) {
-            a.sendMessage("§c申报失败：官网服务不可用");
-        } else if (resp.has("error")) {
-            a.sendMessage("§c" + resp.get("error").getAsString());
-        } else {
-            a.sendMessage("§a申报提交成功！请等待管理员审核。");
-        }
+        a.runAsync(() -> {
+            if (!mod.getBindManager().isBound(a.getUuid())) {
+                a.sendMessage("§c请先使用 /xj bind 绑定官网账号");
+                return;
+            }
+            JsonObject resp = mod.getClaimManager().submit(a.getUuid(), amount, reason);
+            if (resp == null) {
+                a.sendMessage("§c申报失败：官网服务不可用");
+            } else if (resp.has("error")) {
+                a.sendMessage("§c" + resp.get("error").getAsString());
+            } else {
+                a.sendMessage("§a申报提交成功！请等待管理员审核。");
+            }
+        });
         return Command.SINGLE_SUCCESS;
     }
 
+    /** /xj online：查询官网在线的玄剑玩家（后端按 mod_bindings 绑定过滤 + TTL 过期过滤） */
     private int online(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
         if (!usable(a)) return 0;
-        OnlineManager om = mod.getOnlineManager();
-        // 服务端配置了 server.ip 则查本服；客户端/未配置则查全网已绑定玄剑玩家
-        String ip = om.getServerIp();
-        List<OnlineManager.OnlinePlayer> players = om.queryOnline(ip == null ? "" : ip);
-        if (players.isEmpty()) {
-            a.sendMessage("§e暂无已绑定官网账号的玄剑玩家在线。");
-            return Command.SINGLE_SUCCESS;
-        }
-        StringBuilder sb = new StringBuilder("§e===== 玄剑在线玩家（" + players.size() + "）=====\n");
-        for (OnlineManager.OnlinePlayer p : players) {
-            sb.append("§f").append(p.name).append("\n");
-        }
-        a.sendMessage(sb.toString());
+        a.runAsync(() -> {
+            if (!mod.getBindManager().isBound(a.getUuid())) {
+                a.sendMessage("§c请先使用 /xj bind 绑定官网账号");
+                return;
+            }
+            JsonObject resp = mod.getApi().get("/api/mod/online");
+            if (resp == null || !resp.has("players")) {
+                a.sendMessage("§c在线列表查询失败：官网服务不可用");
+                return;
+            }
+            JsonArray arr = resp.getAsJsonArray("players");
+            if (arr.size() == 0) {
+                a.sendMessage("§e当前没有在线的玄剑玩家。");
+                return;
+            }
+            StringBuilder sb = new StringBuilder("§e===== 在线玄剑玩家（" + arr.size() + "人）=====\n");
+            for (int i = 0; i < arr.size(); i++) {
+                JsonObject o = arr.get(i).getAsJsonObject();
+                String name = o.has("name") ? o.get("name").getAsString() : "?";
+                String server = o.has("server") ? o.get("server").getAsString() : "";
+                sb.append("§f").append(name).append(server.isEmpty() ? "" : " §7@" + server).append("\n");
+            }
+            a.sendMessage(sb.toString().stripTrailing());
+        });
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int gui(CommandContext<S> ctx) {
+        CommandActor a = actor(ctx);
+        if (!usable(a)) return 0;
+        a.openGui();
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int settings(CommandContext<S> ctx) {
+        CommandActor a = actor(ctx);
+        if (!usable(a)) return 0;
+        a.openSettings();
         return Command.SINGLE_SUCCESS;
     }
 }

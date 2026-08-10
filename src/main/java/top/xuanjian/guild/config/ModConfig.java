@@ -84,19 +84,39 @@ public class ModConfig {
         return apiBase;
     }
 
+    public void setApiBase(String apiBase) {
+        this.apiBase = apiBase;
+    }
+
     public String getServerKey() {
         return serverKey;
+    }
+
+    public void setServerKey(String serverKey) {
+        this.serverKey = serverKey;
     }
 
     public String getServerIp() {
         return serverIp;
     }
 
+    public void setServerIp(String serverIp) {
+        this.serverIp = serverIp;
+    }
+
     public int getSyncInterval() {
         return syncInterval;
     }
 
+    public void setSyncInterval(int syncInterval) {
+        this.syncInterval = syncInterval;
+    }
+
     public int getHeartbeatInterval() {
         return heartbeatInterval;
+    }
+
+    public void setHeartbeatInterval(int heartbeatInterval) {
+        this.heartbeatInterval = heartbeatInterval;
     }
 }

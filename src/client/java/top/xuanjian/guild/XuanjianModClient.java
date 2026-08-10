@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * 客户端入口：将 /xj 命令注册到客户端命令树（无需服务器安装模组即可使用），
- * 并实现客户端自动签到、心跳上报、日报/决策同步与申报审核提醒（仅本地提示当前玩家）。
+ * 并实现客户端自动签到、上下线上报、心跳上报、日报/决策同步与申报审核提醒（仅本地提示当前玩家）。
  * 个人功能（绑定/签到/任务/贡献点/申报/在线查看）全部直连官网 API。
  */
 public class XuanjianModClient implements ClientModInitializer {
@@ -30,6 +31,8 @@ public class XuanjianModClient implements ClientModInitializer {
 
     private XuanjianMod mod;
     private long tickCounter = 0;
+    /** 当前所在服务器地址（用于上下线上报） */
+    private String currentServerAddress = null;
 
     @Override
     public void onInitializeClient() {
@@ -50,6 +53,8 @@ public class XuanjianModClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (client.player == null) return;
             UUID uuid = client.player.getUUID();
+            currentServerAddress = currentServer(client);
+            reportJoin(client); // 上线上报（白名单服务器）
             mod.getBindManager().syncFromServer(uuid); // 邮件确认后本地缓存可能未更新，先同步官网状态
             if (!mod.getBindManager().isBound(uuid)) return;
             String name = client.player.getName().getString();
@@ -85,6 +90,18 @@ public class XuanjianModClient implements ClientModInitializer {
             });
         });
 
+        // 客户端下线上报（崩溃/断网时收不到，由在线记录 TTL 过期兜底）
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            if (currentServerAddress == null || client.player == null) return;
+            UUID uuid = client.player.getUUID();
+            String server = currentServerAddress;
+            currentServerAddress = null;
+            Map<String, Object> body = new HashMap<>();
+            body.put("uuid", uuid.toString());
+            body.put("server", server);
+            CompletableFuture.runAsync(() -> mod.getApi().post("/api/mod/online/leave", body));
+        });
+
         // 客户端周期任务：在线即心跳上报 + 日报/决策同步 + 申报审核提醒
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) {
@@ -112,6 +129,32 @@ public class XuanjianModClient implements ClientModInitializer {
         Map<String, Object> body = new HashMap<>();
         body.put("players", List.of(uuid.toString()));
         CompletableFuture.runAsync(() -> mod.getApi().post("/api/mod/heartbeat", body));
+        reportJoin(client); // 在线续报（刷新 mod_online 有效期）
+    }
+
+    /** 获取当前服务器地址（单机/未知返回 null） */
+    private String currentServer(Minecraft client) {
+        try {
+            ServerData data = client.getCurrentServer();
+            if (data != null && data.address != null && !data.address.isBlank()) {
+                return data.address;
+            }
+        } catch (Exception e) {
+            LOGGER.warn("获取服务器地址失败: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /** 上线上报（仅已绑定玩家；服务器地址不在官网白名单则后端忽略） */
+    private void reportJoin(Minecraft client) {
+        String server = currentServerAddress != null ? currentServerAddress : currentServer(client);
+        if (server == null || server.isBlank()) return;
+        UUID uuid = client.player.getUUID();
+        if (!mod.getBindManager().isBound(uuid)) return;
+        Map<String, Object> body = new HashMap<>();
+        body.put("uuid", uuid.toString());
+        body.put("server", server);
+        CompletableFuture.runAsync(() -> mod.getApi().post("/api/mod/online/join", body));
     }
 
     /** 日报/决策同步 + 申报审核提醒（本地聊天栏提示当前玩家） */

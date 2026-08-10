@@ -11,9 +11,8 @@ base {
 }
 
 repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+	// 其他 Mod 依赖仓库
+	maven { url "https://maven.shedaniel.me/" }
 }
 
 loom {
@@ -33,6 +32,9 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	// Cloth Config：设置页 GUI（jar-in-jar 打包进模组，玩家无需单独安装）
+	modImplementation("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}")
+	include "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}"
 }
 
 processResources {
