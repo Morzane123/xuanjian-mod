@@ -26,7 +26,13 @@ jobs:
           gradle-version: '9.5.1'
 
       - name: Build with Gradle
-        run: gradle build --no-daemon
+        run: |
+          gradle build --no-daemon --stacktrace > gradle-build.log 2>&1 || BUILD_FAILED=1
+          if [ -n "$BUILD_FAILED" ]; then
+            echo "===== GRADLE BUILD FAILED, LAST 150 LINES =====" >&2
+            tail -n 150 gradle-build.log >&2
+            exit 1
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

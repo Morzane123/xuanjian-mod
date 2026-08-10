@@ -12,6 +12,7 @@ base {
 
 repositories {
 	// 其他 Mod 依赖仓库
+	mavenCentral()
 	maven { url "https://maven.shedaniel.me/" }
 }
 
