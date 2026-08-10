@@ -36,10 +36,10 @@ public class XuanjianInfoScreen extends Screen {
         this.addRenderableWidget(Button.builder(Component.literal("刷新"), b -> reload())
                 .bounds(w / 2 - 128, bottom, 80, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("设置"), b ->
-                        Minecraft.getInstance().setScreen(XuanjianConfigScreen.create(this)))
+                        Minecraft.getInstance().gui.setScreen(XuanjianConfigScreen.create(this)))
                 .bounds(w / 2 - 40, bottom, 80, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("关闭"), b ->
-                        Minecraft.getInstance().setScreen(null))
+                        Minecraft.getInstance().gui.setScreen(null))
                 .bounds(w / 2 + 48, bottom, 80, 20).build());
         reload();
     }

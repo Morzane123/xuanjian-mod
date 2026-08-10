@@ -46,12 +46,12 @@ public class ClientCommandActor implements CommandActor {
     @Override
     public void openGui() {
         Minecraft.getInstance().execute(() ->
-                Minecraft.getInstance().setScreen(new top.xuanjian.guild.gui.XuanjianInfoScreen()));
+                Minecraft.getInstance().gui.setScreen(new top.xuanjian.guild.gui.XuanjianInfoScreen()));
     }
 
     @Override
     public void openSettings() {
         Minecraft.getInstance().execute(() ->
-                Minecraft.getInstance().setScreen(top.xuanjian.guild.gui.XuanjianConfigScreen.create(null)));
+                Minecraft.getInstance().gui.setScreen(top.xuanjian.guild.gui.XuanjianConfigScreen.create(null)));
     }
 }
