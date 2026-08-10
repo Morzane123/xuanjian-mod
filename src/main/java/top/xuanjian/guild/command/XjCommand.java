@@ -8,6 +8,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.xuanjian.guild.XuanjianMod;
 import top.xuanjian.guild.bind.BindManager;
 import top.xuanjian.guild.economy.ClaimManager;
@@ -26,6 +28,8 @@ import java.util.function.Function;
  * 所有涉及网络请求的命令通过 runAsync 在后台线程执行，避免阻塞游戏主线程导致卡顿。
  */
 public class XjCommand<S> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("xuanjianmod");
 
     private final XuanjianMod mod;
     private final Function<S, CommandActor> actorFactory;
@@ -369,14 +373,22 @@ public class XjCommand<S> {
 
     private int gui(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
-        if (!usable(a)) return 0;
+        if (!usable(a)) {
+            LOGGER.info("[xuanjianmod] /xj gui 未执行：执行者无效");
+            return 0;
+        }
+        LOGGER.info("[xuanjianmod] /xj gui 命令触发");
         a.openGui();
         return Command.SINGLE_SUCCESS;
     }
 
     private int settings(CommandContext<S> ctx) {
         CommandActor a = actor(ctx);
-        if (!usable(a)) return 0;
+        if (!usable(a)) {
+            LOGGER.info("[xuanjianmod] /xj settings 未执行：执行者无效");
+            return 0;
+        }
+        LOGGER.info("[xuanjianmod] /xj settings 命令触发");
         a.openSettings();
         return Command.SINGLE_SUCCESS;
     }
