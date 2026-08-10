@@ -4,9 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
@@ -22,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
  * 玄剑公会信息面板（vanilla Screen，不依赖其他 Mod）。
  * /xj gui 打开：展示绑定状态、贡献点余额、当前在线的玄剑玩家。
  * 网络数据在后台线程加载，渲染线程刷新，避免卡顿。
- * 文本使用标准 StringWidget 渲染（走 widget 渲染管线，兼容性最好）。
+ * 适配 Minecraft 1.21.11：渲染入口为 render(GuiGraphics)，文本用 gui.drawString(...)。
  */
 public class XuanjianInfoScreen extends Screen {
 
@@ -30,8 +28,7 @@ public class XuanjianInfoScreen extends Screen {
 
     /** 展示行：每行以 § 颜色码开头（§a/§e/§c/§7/§f），渲染时解析 */
     private final List<String> lines = new ArrayList<>();
-    /** 已添加的文本行 widgets（用于刷新时移除重建） */
-    private final List<AbstractWidget> textWidgets = new ArrayList<>();
+    private boolean renderLogged = false;
 
     public XuanjianInfoScreen() {
         super(Component.literal("玄剑公会信息"));
@@ -58,7 +55,6 @@ public class XuanjianInfoScreen extends Screen {
     private void reload() {
         lines.clear();
         lines.add("§7正在从官网加载数据...");
-        rebuildTextWidgets();
         CompletableFuture.runAsync(() -> {
             List<String> data = new ArrayList<>();
             Minecraft mc = Minecraft.getInstance();
@@ -106,31 +102,26 @@ public class XuanjianInfoScreen extends Screen {
             mc.execute(() -> {
                 lines.clear();
                 lines.addAll(data);
-                rebuildTextWidgets();
             });
         });
-    }
-
-    /** 用 StringWidget 重建全部文本行（走标准 widget 渲染管线） */
-    private void rebuildTextWidgets() {
-        for (AbstractWidget w : textWidgets) {
-            this.removeWidget(w);
-        }
-        textWidgets.clear();
-        int y = 26;
-        for (String line : lines) {
-            StringWidget sw = new StringWidget(16, y, this.width - 32, 12,
-                    Component.literal(textOf(line)), this.font);
-            sw.setFGColor(colorOf(line));
-            this.addRenderableWidget(sw);
-            textWidgets.add(sw);
-            y += 14;
-        }
     }
 
     @Override
     public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         super.render(gui, mouseX, mouseY, delta);
+        if (!renderLogged) {
+            renderLogged = true;
+            LOGGER.info("[xuanjianmod] 信息面板开始渲染，当前行数 {}", lines.size());
+        }
+        int y = 26;
+        if (lines.isEmpty()) {
+            gui.drawString(this.font, "数据加载中...", 16, y, 0xFFFFFF);
+            return;
+        }
+        for (String line : lines) {
+            gui.drawString(this.font, textOf(line), 16, y, colorOf(line));
+            y += 14;
+        }
     }
 
     @Override
