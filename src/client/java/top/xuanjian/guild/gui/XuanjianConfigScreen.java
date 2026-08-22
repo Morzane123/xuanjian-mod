@@ -1,7 +1,7 @@
 package top.xuanjian.guild.gui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -15,7 +15,7 @@ import top.xuanjian.guild.config.ModConfig;
  * 玄剑公会模组设置页（vanilla 自写，不依赖任何外部库）。
  * /xj settings 打开：官网地址、本服地址、同步/心跳间隔等。
  * 保存时写回 ModConfig（config/xuanjianmod.properties）并重新应用。
- * 适配 Minecraft 26.1：渲染入口 render(GuiGraphics)，文本用 gui.drawString；
+ * 适配 Minecraft 26.1：渲染入口 extractRenderState(GuiGraphicsExtractor)，文本用 graphics.text(...)；
  * 屏幕切换用 Minecraft.setScreen（26.2 才移到 Minecraft.gui）。
  */
 public class XuanjianConfigScreen extends Screen {
@@ -128,24 +128,23 @@ public class XuanjianConfigScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
-        this.renderBackground(gui, mouseX, mouseY, delta);
-        gui.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+        graphics.text(this.font, this.title, this.width / 2 - this.font.width(this.title) / 2, 20, 0xFFFFFF, true);
         int centerX = this.width / 2;
         int y = 40;
-        gui.drawString(this.font, "官网地址", centerX - 140 - 6 - this.font.width("官网地址"), y + 6, 0xA0A0A0);
+        graphics.text(this.font, "官网地址", centerX - 140 - 6 - this.font.width("官网地址"), y + 6, 0xA0A0A0, true);
         y += 28;
-        gui.drawString(this.font, "本服地址（可选）", centerX - 140 - 6 - this.font.width("本服地址（可选）"), y + 6, 0xA0A0A0);
+        graphics.text(this.font, "本服地址（可选）", centerX - 140 - 6 - this.font.width("本服地址（可选）"), y + 6, 0xA0A0A0, true);
         y += 28;
-        gui.drawString(this.font, "同步间隔（秒，≥30）", centerX - 140 - 6 - this.font.width("同步间隔（秒，≥30）"), y + 6, 0xA0A0A0);
+        graphics.text(this.font, "同步间隔（秒，≥30）", centerX - 140 - 6 - this.font.width("同步间隔（秒，≥30）"), y + 6, 0xA0A0A0, true);
         y += 28;
-        gui.drawString(this.font, "心跳间隔（秒，≥30）", centerX - 140 - 6 - this.font.width("心跳间隔（秒，≥30）"), y + 6, 0xA0A0A0);
+        graphics.text(this.font, "心跳间隔（秒，≥30）", centerX - 140 - 6 - this.font.width("心跳间隔（秒，≥30）"), y + 6, 0xA0A0A0, true);
         y += 40;
-        gui.drawString(this.font, "服务器 Key 已弃用（在线状态改用客户端上下线上报），无需填写。", centerX - 140, y, 0x707070);
+        graphics.text(this.font, "服务器 Key 已弃用（在线状态改用客户端上下线上报），无需填写。", centerX - 140, y, 0x707070, true);
         if (!message.isEmpty()) {
-            gui.drawString(this.font, message, centerX - 140, this.height - 52, 0xFFFFFF);
+            graphics.text(this.font, message, centerX - 140, this.height - 52, 0xFFFFFF, true);
         }
-        super.render(gui, mouseX, mouseY, delta);
     }
 
     @Override
