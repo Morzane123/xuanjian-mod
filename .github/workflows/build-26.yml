@@ -43,3 +43,17 @@ jobs:
           name: xuanjianmod-26
           path: build/libs/*.jar
           if-no-files-found: error
+
+      - name: Create/Update GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.1-26.2
+          name: xuanjianmod 26.2.x (v1.0.1-26.2)
+          body: |
+            Xuanjian Guild Mod — Minecraft 26.2.x Fabric 构建（含信息面板 / 设置页 GUI）。
+            - 修正 GUI 信息面板 / 设置页（按 26.2 渲染 API 适配）
+            - 支持绑定 / 签到 / 任务 / 贡献点转账申报 / 日报决策同步
+          make_latest: true
+          files: build/libs/*.jar
+          fail_on_unmatched_files: false
