@@ -150,15 +150,6 @@ public class XuanjianConfigScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 257 || keyCode == 335) { // Enter / NumpadEnter
-            save();
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
-    }
-
-    @Override
     public void onClose() {
         Minecraft.getInstance().gui.setScreen(parent);
         super.onClose();
