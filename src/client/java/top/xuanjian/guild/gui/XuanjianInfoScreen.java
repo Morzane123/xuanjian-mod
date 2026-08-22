@@ -55,10 +55,11 @@ public class XuanjianInfoScreen extends Screen {
     private void reload() {
         lines.clear();
         lines.add("§7正在从官网加载数据...");
+        // 主线程快照玩家 UUID，避免在后台线程读取 Minecraft 对象（跨线程序不安全）
+        Minecraft mc = Minecraft.getInstance();
+        final UUID uuid = mc.player != null ? mc.player.getUUID() : null;
         CompletableFuture.runAsync(() -> {
             List<String> data = new ArrayList<>();
-            Minecraft mc = Minecraft.getInstance();
-            UUID uuid = mc.player != null ? mc.player.getUUID() : null;
             if (uuid == null) {
                 data.add("§c未进入服务器，无法获取玩家信息");
             } else {
@@ -113,12 +114,18 @@ public class XuanjianInfoScreen extends Screen {
             renderLogged = true;
             LOGGER.info("[xuanjianmod] 信息面板开始渲染，当前行数 {}", lines.size());
         }
-        int y = 26;
         if (lines.isEmpty()) {
-            gui.drawString(this.font, "数据加载中...", 16, y, 0xFFFFFF);
+            gui.drawString(this.font, "数据加载中...", 16, 26, 0xFFFFFF);
             return;
         }
+        // 文本区限制在按钮行上方（按钮底部 height-28，行高 14），避免文字盖住操作按钮或溢出屏幕
+        int y = 26;
+        int maxY = this.height - 36;
         for (String line : lines) {
+            if (y > maxY) {
+                gui.drawString(this.font, "...", 16, y, 0xAAAAAA);
+                break;
+            }
             gui.drawString(this.font, textOf(line), 16, y, colorOf(line));
             y += 14;
         }

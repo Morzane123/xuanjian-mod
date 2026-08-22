@@ -40,3 +40,17 @@ jobs:
           name: xuanjianmod-121
           path: build/libs/*.jar
           if-no-files-found: error
+
+      - name: Create/Update GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.1-1.21.11
+          name: xuanjianmod 1.21.x (v1.0.1-1.21.11)
+          body: |
+            Xuanjian Guild Mod — Minecraft 1.21.11 Fabric 构建（含信息面板 / 设置页 GUI）。
+            - 修正 GUI 信息面板 / 设置页（文本区不再遮挡按钮，异步任务先快照 UUID）
+            - 支持绑定 / 签到 / 任务 / 贡献点转账申报 / 日报决策同步
+          make_latest: false
+          files: build/libs/*.jar
+          fail_on_unmatched_files: false

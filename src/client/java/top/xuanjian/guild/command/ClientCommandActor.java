@@ -58,6 +58,7 @@ public class ClientCommandActor implements CommandActor {
     public void openSettings() {
         LOGGER.info("[xuanjianmod] 执行打开设置页");
         Minecraft.getInstance().execute(() ->
-                Minecraft.getInstance().setScreen(top.xuanjian.guild.gui.XuanjianConfigScreen.create(null)));
+                Minecraft.getInstance().setScreen(
+                        top.xuanjian.guild.gui.XuanjianConfigScreen.create(Minecraft.getInstance().screen)));
     }
 }
