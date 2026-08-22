@@ -242,6 +242,13 @@ public class XuanjianMod implements ModInitializer {
 
     /* ============ 访问器 ============ */
 
+    /** 设置页保存后应用新配置（重新绑定 API 地址与服务器信息） */
+    public void applyConfig() {
+        api.update(config.getApiBase(), config.getServerKey());
+        onlineManager.updateServerIp(config.getServerIp());
+        LOGGER.info("[xuanjianmod] 配置已应用：api={}，本服地址={}", config.getApiBase(), config.getServerIp());
+    }
+
     public ModConfig getConfig() { return config; }
     public ApiClient getApi() { return api; }
     public BindManager getBindManager() { return bindManager; }
