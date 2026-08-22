@@ -53,7 +53,8 @@ public class ContributionManager {
         PendingTransfer pt = pendingTransfers.remove(fromUuid);
         if (pt == null) return null;
         Map<String, Object> body = new HashMap<>();
-        body.put("fromUuid", fromUuid.toString());
+        body.put("uuid", fromUuid.toString());      // 供 playerAuth 鉴权
+        body.put("fromUuid", fromUuid.toString());  // 供 transfer 逻辑使用
         body.put("toPlayer", pt.toPlayer);
         body.put("amount", pt.amount);
         return api.post("/api/mod/transfer", body);

@@ -1,67 +1,175 @@
 package top.xuanjian.guild.gui;
 
-import me.shedaniel.clothconfig2.api.ConfigBuilder;
-import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.xuanjian.guild.XuanjianMod;
 import top.xuanjian.guild.config.ModConfig;
 
 /**
- * 玄剑公会模组设置页（基于 Cloth Config 自动生成）。
- * /xj settings 打开：官网地址、服务器信息、周期任务间隔等。
+ * 玄剑公会模组设置页（vanilla 自写，不依赖任何外部库）。
+ * /xj settings 打开：官网地址、本服地址、同步/心跳间隔等。
  * 保存时写回 ModConfig（config/xuanjianmod.properties）并重新应用。
+ * 适配 Minecraft 26.2：渲染入口 extractRenderState(GuiGraphicsExtractor)，文本用 graphics.text(...)。
  */
-public class XuanjianConfigScreen {
+public class XuanjianConfigScreen extends Screen {
 
-    private XuanjianConfigScreen() {
+    private static final Logger LOGGER = LoggerFactory.getLogger("xuanjianmod");
+
+    private final Screen parent;
+    private EditBox apiBaseBox;
+    private EditBox serverIpBox;
+    private EditBox syncIntervalBox;
+    private EditBox heartbeatIntervalBox;
+    private String message = "";
+
+    public XuanjianConfigScreen(Screen parent) {
+        super(Component.literal("玄剑公会模组设置"));
+        this.parent = parent;
+        LOGGER.info("[xuanjianmod] 设置页创建成功");
     }
 
     public static Screen create(Screen parent) {
+        return new XuanjianConfigScreen(parent);
+    }
+
+    @Override
+    public void init() {
+        LOGGER.info("[xuanjianmod] 设置页初始化，尺寸 {}x{}", this.width, this.height);
+        int centerX = this.width / 2;
+        int y = 40;
+        ModConfig config = currentConfig();
+
+        this.apiBaseBox = new EditBox(this.font, centerX - 140, y, 280, 20, Component.literal("官网地址"));
+        this.apiBaseBox.setMaxLength(200);
+        this.apiBaseBox.setValue(config != null ? config.getApiBase() : "https://xuanjian.top");
+        this.apiBaseBox.setResponder(s -> message = "");
+        addRenderableWidget(this.apiBaseBox);
+        y += 28;
+
+        this.serverIpBox = new EditBox(this.font, centerX - 140, y, 280, 20, Component.literal("本服地址"));
+        this.serverIpBox.setMaxLength(120);
+        this.serverIpBox.setValue(config != null ? config.getServerIp() : "");
+        this.serverIpBox.setResponder(s -> message = "");
+        addRenderableWidget(this.serverIpBox);
+        y += 28;
+
+        this.syncIntervalBox = new EditBox(this.font, centerX - 140, y, 280, 20, Component.literal("同步间隔（秒）"));
+        this.syncIntervalBox.setMaxLength(6);
+        this.syncIntervalBox.setFilter(s -> s.matches("\\d*"));
+        this.syncIntervalBox.setValue(String.valueOf(config != null ? config.getSyncInterval() : 60));
+        this.syncIntervalBox.setResponder(s -> message = "");
+        addRenderableWidget(this.syncIntervalBox);
+        y += 28;
+
+        this.heartbeatIntervalBox = new EditBox(this.font, centerX - 140, y, 280, 20, Component.literal("心跳间隔（秒）"));
+        this.heartbeatIntervalBox.setMaxLength(6);
+        this.heartbeatIntervalBox.setFilter(s -> s.matches("\\d*"));
+        this.heartbeatIntervalBox.setValue(String.valueOf(config != null ? config.getHeartbeatInterval() : 1800));
+        this.heartbeatIntervalBox.setResponder(s -> message = "");
+        addRenderableWidget(this.heartbeatIntervalBox);
+        y += 40;
+
+        int bottom = this.height - 30;
+        addRenderableWidget(Button.builder(Component.literal("保存"), b -> save())
+                .bounds(centerX - 128, bottom, 80, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("返回"), b -> this.onClose())
+                .bounds(centerX - 40, bottom, 80, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("重置默认"), b -> resetDefaults())
+                .bounds(centerX + 48, bottom, 80, 20).build());
+
+        setInitialFocus(this.apiBaseBox);
+    }
+
+    private static ModConfig currentConfig() {
         XuanjianMod mod = XuanjianMod.getInstance();
-        if (mod == null) {
-            return parent != null ? parent : new XuanjianInfoScreen();
+        return mod != null ? mod.getConfig() : null;
+    }
+
+    /** 保存配置到 properties 文件并重新应用 */
+    private void save() {
+        ModConfig config = currentConfig();
+        if (config == null) {
+            message = "§c模组主入口未初始化，无法保存";
+            return;
         }
-        ModConfig config = mod.getConfig();
+        int sync;
+        int heartbeat;
+        try {
+            sync = Math.max(30, Integer.parseInt(syncIntervalBox.getValue().trim()));
+            heartbeat = Math.max(30, Integer.parseInt(heartbeatIntervalBox.getValue().trim()));
+        } catch (NumberFormatException e) {
+            message = "§c间隔必须为数字（最小 30）";
+            return;
+        }
+        String api = apiBaseBox.getValue().trim();
+        if (api.isEmpty()) {
+            message = "§c官网地址不能为空";
+            return;
+        }
+        config.setApiBase(api);
+        config.setServerIp(serverIpBox.getValue().trim());
+        config.setSyncInterval(sync);
+        config.setHeartbeatInterval(heartbeat);
+        config.save();
+        XuanjianMod mod = XuanjianMod.getInstance();
+        if (mod != null) mod.applyConfig();
+        message = "§a已保存并生效";
+        LOGGER.info("[xuanjianmod] 设置已保存");
+    }
 
-        ConfigBuilder builder = ConfigBuilder.create()
-                .setParentScreen(parent)
-                .setTitle(Component.literal("玄剑公会模组设置"));
-        builder.setSavingRunnable(() -> {
-            config.save();
-            mod.applyConfig();
-        });
+    /** 重置为默认值（仅回填输入框，不写盘，需点保存生效） */
+    private void resetDefaults() {
+        apiBaseBox.setValue("https://xuanjian.top");
+        serverIpBox.setValue("");
+        syncIntervalBox.setValue("60");
+        heartbeatIntervalBox.setValue("1800");
+        message = "§e已填回默认值，点击保存生效";
+    }
 
-        ConfigEntryBuilder e = builder.entryBuilder();
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        this.renderBackground(graphics, mouseX, mouseY, delta);
+        graphics.text(this.font, this.title, this.width / 2 - this.font.width(this.title) / 2, 20, 0xFFFFFF, true);
+        int centerX = this.width / 2;
+        int y = 40;
+        graphics.text(this.font, "官网地址", centerX - 140 - 6 - this.font.width("官网地址"), y + 6, 0xA0A0A0, true);
+        y += 28;
+        graphics.text(this.font, "本服地址（可选）", centerX - 140 - 6 - this.font.width("本服地址（可选）"), y + 6, 0xA0A0A0, true);
+        y += 28;
+        graphics.text(this.font, "同步间隔（秒，≥30）", centerX - 140 - 6 - this.font.width("同步间隔（秒，≥30）"), y + 6, 0xA0A0A0, true);
+        y += 28;
+        graphics.text(this.font, "心跳间隔（秒，≥30）", centerX - 140 - 6 - this.font.width("心跳间隔（秒，≥30）"), y + 6, 0xA0A0A0, true);
+        y += 40;
+        graphics.text(this.font, "服务器 Key 已弃用（在线状态改用客户端上下线上报），无需填写。", centerX - 140, y, 0x707070, true);
+        if (!message.isEmpty()) {
+            graphics.text(this.font, message, centerX - 140, this.height - 52, 0xFFFFFF, true);
+        }
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+    }
 
-        builder.getOrCreateCategory(Component.literal("官网"))
-                .addEntry(e.startStrField(Component.literal("官网地址"), config.getApiBase())
-                        .setDefaultValue("https://xuanjian.top")
-                        .setSaveConsumer(config::setApiBase)
-                        .build());
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 257 || keyCode == 335) { // Enter / NumpadEnter
+            save();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
 
-        builder.getOrCreateCategory(Component.literal("服务器"))
-                .addEntry(e.startStrField(Component.literal("本服地址（可选）"), config.getServerIp())
-                        .setTooltip(Component.literal("填写后 /xj online 优先查询本服在线玩家；留空则查询全网玄剑玩家"))
-                        .setDefaultValue("")
-                        .setSaveConsumer(config::setServerIp)
-                        .build())
-                .addEntry(e.startStrField(Component.literal("服务器 Key（已弃用）"), config.getServerKey())
-                        .setTooltip(Component.literal("在线状态已改为客户端上下线上报，此配置不再使用，可留空"))
-                        .setDefaultValue("")
-                        .setSaveConsumer(config::setServerKey)
-                        .build());
+    @Override
+    public void onClose() {
+        Minecraft.getInstance().gui.setScreen(parent);
+        super.onClose();
+    }
 
-        builder.getOrCreateCategory(Component.literal("周期任务"))
-                .addEntry(e.startIntField(Component.literal("同步间隔（秒）"), config.getSyncInterval())
-                        .setDefaultValue(60).setMin(30)
-                        .setSaveConsumer(config::setSyncInterval)
-                        .build())
-                .addEntry(e.startIntField(Component.literal("心跳间隔（秒）"), config.getHeartbeatInterval())
-                        .setDefaultValue(1800).setMin(30)
-                        .setSaveConsumer(config::setHeartbeatInterval)
-                        .build());
-
-        return builder.build();
+    @Override
+    public boolean isPauseScreen() {
+        return false;
     }
 }
