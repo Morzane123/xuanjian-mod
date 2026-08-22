@@ -64,7 +64,9 @@ public class XjCommand<S> {
                         .then(RequiredArgumentBuilder.<S, Integer>argument("amount", IntegerArgumentType.integer(1))
                                 .then(RequiredArgumentBuilder.<S, String>argument("reason", StringArgumentType.greedyString())
                                         .executes(this::claim))))
-                .then(LiteralArgumentBuilder.<S>literal("online").executes(this::online));
+                .then(LiteralArgumentBuilder.<S>literal("online").executes(this::online))
+                .then(LiteralArgumentBuilder.<S>literal("gui").executes(this::gui))
+                .then(LiteralArgumentBuilder.<S>literal("settings").executes(this::settings));
     }
 
     /* ============ 执行者解析 ============ */
@@ -96,6 +98,8 @@ public class XjCommand<S> {
                 + "§a/xj cb cancel §f取消转账\n"
                 + "§a/xj claim <数量> <理由> §f贡献点申报\n"
                 + "§a/xj online §f查看在线玩家\n"
+                + "§a/xj gui §f打开信息面板\n"
+                + "§a/xj settings §f打开设置页\n"
                 + "§a/xj help §f帮助\n"
                 + "§a/xj version §f版本");
         return Command.SINGLE_SUCCESS;
@@ -327,6 +331,20 @@ public class XjCommand<S> {
             sb.append("§f").append(p.name).append("\n");
         }
         a.sendMessage(sb.toString());
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int gui(CommandContext<S> ctx) {
+        CommandActor a = actor(ctx);
+        if (!usable(a)) return 0;
+        a.openGui();
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int settings(CommandContext<S> ctx) {
+        CommandActor a = actor(ctx);
+        if (!usable(a)) return 0;
+        a.openSettings();
         return Command.SINGLE_SUCCESS;
     }
 }

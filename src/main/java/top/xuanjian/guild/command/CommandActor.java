@@ -19,4 +19,12 @@ public interface CommandActor {
 
     /** 执行者是否有效（如尚未进入世界 / 不在服务器内） */
     boolean isValid();
+
+    /** 打开信息面板（默认 no-op；客户端执行者实现） */
+    default void openGui() {
+    }
+
+    /** 打开设置页（默认 no-op；客户端执行者实现） */
+    default void openSettings() {
+    }
 }
