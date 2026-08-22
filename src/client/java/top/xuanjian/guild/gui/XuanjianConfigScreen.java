@@ -62,7 +62,6 @@ public class XuanjianConfigScreen extends Screen {
 
         this.syncIntervalBox = new EditBox(this.font, centerX - 140, y, 280, 20, Component.literal("同步间隔（秒）"));
         this.syncIntervalBox.setMaxLength(6);
-        this.syncIntervalBox.setFilter(s -> s.matches("\\d*"));
         this.syncIntervalBox.setValue(String.valueOf(config != null ? config.getSyncInterval() : 60));
         this.syncIntervalBox.setResponder(s -> message = "");
         addRenderableWidget(this.syncIntervalBox);
@@ -70,7 +69,6 @@ public class XuanjianConfigScreen extends Screen {
 
         this.heartbeatIntervalBox = new EditBox(this.font, centerX - 140, y, 280, 20, Component.literal("心跳间隔（秒）"));
         this.heartbeatIntervalBox.setMaxLength(6);
-        this.heartbeatIntervalBox.setFilter(s -> s.matches("\\d*"));
         this.heartbeatIntervalBox.setValue(String.valueOf(config != null ? config.getHeartbeatInterval() : 1800));
         this.heartbeatIntervalBox.setResponder(s -> message = "");
         addRenderableWidget(this.heartbeatIntervalBox);
@@ -83,8 +81,6 @@ public class XuanjianConfigScreen extends Screen {
                 .bounds(centerX - 40, bottom, 80, 20).build());
         addRenderableWidget(Button.builder(Component.literal("重置默认"), b -> resetDefaults())
                 .bounds(centerX + 48, bottom, 80, 20).build());
-
-        setInitialFocus(this.apiBaseBox);
     }
 
     private static ModConfig currentConfig() {
@@ -150,15 +146,6 @@ public class XuanjianConfigScreen extends Screen {
             gui.drawString(this.font, message, centerX - 140, this.height - 52, 0xFFFFFF);
         }
         super.render(gui, mouseX, mouseY, delta);
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 257 || keyCode == 335) {
-            save();
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
