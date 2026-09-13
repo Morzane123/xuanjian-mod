@@ -17,9 +17,10 @@ public class ModConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger("xuanjianmod");
 
     private static final String FILE_NAME = "xuanjianmod.properties";
-    private static final String DEFAULT_API_BASE = "https://xuanjian.top";
-    private static final int DEFAULT_SYNC_INTERVAL = 60;
-    private static final int DEFAULT_HEARTBEAT_INTERVAL = 1800;
+    /** 默认官网地址（设置页「重置默认」也复用此常量，避免两处硬编码不一致） */
+    public static final String DEFAULT_API_BASE = "https://xuanjian.top";
+    public static final int DEFAULT_SYNC_INTERVAL = 60;
+    public static final int DEFAULT_HEARTBEAT_INTERVAL = 1800;
 
     private final Path configDir;
     private final Path file;
