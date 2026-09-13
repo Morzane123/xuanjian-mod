@@ -58,6 +58,8 @@ public class ClientCommandActor implements CommandActor {
     public void openSettings() {
         LOGGER.info("[xuanjianmod] 执行打开设置页");
         Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> mc.gui.setScreen(new top.xuanjian.guild.gui.XuanjianConfigScreen(mc.screen)));
+        // 26.2 的 Minecraft 没有公开的 screen 字段（26.1 才有），父界面传 null：
+        // 设置页「返回」即关闭 GUI，行为与之前一致。
+        mc.execute(() -> mc.gui.setScreen(new top.xuanjian.guild.gui.XuanjianConfigScreen(null)));
     }
 }
