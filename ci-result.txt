@@ -1,5 +1,67 @@
 GAMETEST_EXIT=1
 
+===== gametest 日志开头（前置校验/配置错误通常在这里） =====
+
+Welcome to Gradle 9.5.1!
+
+Here are the highlights of this release:
+ - Task provenance in reports and failure messages
+ - Type-safe accessors for precompiled Kotlin Settings plugins
+
+For more details see https://docs.gradle.org/9.5.1/release-notes.html
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Fabric Loom: 1.17.21
+
+> Task :compileJava
+> Task :processResources
+> Task :classes
+> Task :compileClientJava
+> Task :processClientResources NO-SOURCE
+> Task :clientClasses
+> Task :compileGametestJava
+> Task :deleteGameTestRunDir
+> Task :acceptGameTestEula
+> Task :generateLog4jConfig
+> Task :generateDLIConfig
+> Task :configureLaunch
+> Task :downloadAssets
+> Task :configureClientLaunch
+> Task :processGametestResources
+> Task :gametestClasses
+
+> Task :runClientGameTest FAILED
+[12:00:12] [main/WARN] (FabricLoader/Knot) Class path entries reference missing files: /home/runner/work/xuanjian-mod/xuanjian-mod/build/resources/client - the game may not load properly!
+[12:00:12] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 26.2 with Fabric Loader 0.19.3
+[12:00:12] [main/INFO] (FabricLoader/Mappings) Mappings not present!
+[12:00:12] [main/WARN] (FabricLoader/Resolution) Mod resolution failed
+[12:00:12] [main/INFO] (FabricLoader/Resolution) Immediate reason: [HARD_DEP_INCOMPATIBLE_PRESELECTED xuanjianmod-test 1.0.0 {depends minecraft @ [~26.1]}, ROOT_FORCELOAD_SINGLE xuanjianmod-test 1.0.0]
+[12:00:12] [main/INFO] (FabricLoader/Resolution) Reason: [HARD_DEP xuanjianmod-test 1.0.0 {depends minecraft @ [~26.1]}]
+[12:00:12] [main/INFO] (FabricLoader/Resolution) Fix: add [], remove [], replace [[xuanjianmod-test 1.0.0] -> add:xuanjianmod-test 1 ([(-∞,∞)])]
+[12:00:12] [main/ERROR] (FabricLoader) Incompatible mods found!
+
+net.fabricmc.loader.impl.FormattedException: Some of your mods are incompatible with the game or each other!
+A potential solution has been determined, this may resolve your problem:
+	 - Replace mod 'Xuanjian Mod Client Game Tests' (xuanjianmod-test) 1.0.0 with any version that is compatible with:
+		 - minecraft 26.2
+More details:
+	 - Mod 'Xuanjian Mod Client Game Tests' (xuanjianmod-test) 1.0.0 requires any version between 26.1 (inclusive) and 26.2- (exclusive) of 'Minecraft' (minecraft), but only the wrong version is present: 26.2!
+	at net.fabricmc.loader.impl.FormattedException.ofLocalized(FormattedException.java:51)
+	at net.fabricmc.loader.impl.FabricLoaderImpl.load(FabricLoaderImpl.java:202)
+	at net.fabricmc.loader.impl.launch.knot.Knot.init(Knot.java:142)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:66)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789732757524.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/xuanjian-mod/xuanjian-mod/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+
 ===== gametest 日志关键行 =====
 23:> Task :deleteGameTestRunDir
 24:> Task :acceptGameTestEula
@@ -7,4 +69,84 @@ GAMETEST_EXIT=1
 43:net.fabricmc.loader.impl.FormattedException: Some of your mods are incompatible with the game or each other!
 49:	at net.fabricmc.loader.impl.FormattedException.ofLocalized(FormattedException.java:51)
 62:Execution failed for task ':runClientGameTest' (registered by plugin 'fabric-loom').
-77:BUILD FAILED in 40s
+77:BUILD FAILED in 58s
+
+===== gametest 日志结尾 150 行 =====
+
+Welcome to Gradle 9.5.1!
+
+Here are the highlights of this release:
+ - Task provenance in reports and failure messages
+ - Type-safe accessors for precompiled Kotlin Settings plugins
+
+For more details see https://docs.gradle.org/9.5.1/release-notes.html
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Fabric Loom: 1.17.21
+
+> Task :compileJava
+> Task :processResources
+> Task :classes
+> Task :compileClientJava
+> Task :processClientResources NO-SOURCE
+> Task :clientClasses
+> Task :compileGametestJava
+> Task :deleteGameTestRunDir
+> Task :acceptGameTestEula
+> Task :generateLog4jConfig
+> Task :generateDLIConfig
+> Task :configureLaunch
+> Task :downloadAssets
+> Task :configureClientLaunch
+> Task :processGametestResources
+> Task :gametestClasses
+
+> Task :runClientGameTest FAILED
+[12:00:12] [main/WARN] (FabricLoader/Knot) Class path entries reference missing files: /home/runner/work/xuanjian-mod/xuanjian-mod/build/resources/client - the game may not load properly!
+[12:00:12] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 26.2 with Fabric Loader 0.19.3
+[12:00:12] [main/INFO] (FabricLoader/Mappings) Mappings not present!
+[12:00:12] [main/WARN] (FabricLoader/Resolution) Mod resolution failed
+[12:00:12] [main/INFO] (FabricLoader/Resolution) Immediate reason: [HARD_DEP_INCOMPATIBLE_PRESELECTED xuanjianmod-test 1.0.0 {depends minecraft @ [~26.1]}, ROOT_FORCELOAD_SINGLE xuanjianmod-test 1.0.0]
+[12:00:12] [main/INFO] (FabricLoader/Resolution) Reason: [HARD_DEP xuanjianmod-test 1.0.0 {depends minecraft @ [~26.1]}]
+[12:00:12] [main/INFO] (FabricLoader/Resolution) Fix: add [], remove [], replace [[xuanjianmod-test 1.0.0] -> add:xuanjianmod-test 1 ([(-∞,∞)])]
+[12:00:12] [main/ERROR] (FabricLoader) Incompatible mods found!
+
+net.fabricmc.loader.impl.FormattedException: Some of your mods are incompatible with the game or each other!
+A potential solution has been determined, this may resolve your problem:
+	 - Replace mod 'Xuanjian Mod Client Game Tests' (xuanjianmod-test) 1.0.0 with any version that is compatible with:
+		 - minecraft 26.2
+More details:
+	 - Mod 'Xuanjian Mod Client Game Tests' (xuanjianmod-test) 1.0.0 requires any version between 26.1 (inclusive) and 26.2- (exclusive) of 'Minecraft' (minecraft), but only the wrong version is present: 26.2!
+	at net.fabricmc.loader.impl.FormattedException.ofLocalized(FormattedException.java:51)
+	at net.fabricmc.loader.impl.FabricLoaderImpl.load(FabricLoaderImpl.java:202)
+	at net.fabricmc.loader.impl.launch.knot.Knot.init(Knot.java:142)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:66)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789732757524.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/xuanjian-mod/xuanjian-mod/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':runClientGameTest' (registered by plugin 'fabric-loom').
+> Process 'command 'xvfb-run'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 58s
+11 actionable tasks: 11 executed
