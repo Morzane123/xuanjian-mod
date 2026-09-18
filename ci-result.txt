@@ -1,0 +1,10 @@
+GAMETEST_EXIT=1
+
+===== gametest 日志关键行 =====
+23:> Task :deleteGameTestRunDir
+24:> Task :acceptGameTestEula
+33:> Task :runClientGameTest FAILED
+43:net.fabricmc.loader.impl.FormattedException: Some of your mods are incompatible with the game or each other!
+49:	at net.fabricmc.loader.impl.FormattedException.ofLocalized(FormattedException.java:51)
+62:Execution failed for task ':runClientGameTest' (registered by plugin 'fabric-loom').
+77:BUILD FAILED in 40s
