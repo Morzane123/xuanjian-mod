@@ -6,7 +6,7 @@ import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.xuanjian.guild.gui.XuanjianConfigScreen;
-import top.xuanjian.guild.gui.XuanjianInfoScreen;
+import top.xuanjian.guild.gui.XuanjianMainScreen;
 
 import java.util.UUID;
 
@@ -50,9 +50,9 @@ public class ClientCommandActor implements CommandActor {
 
     @Override
     public void openGui() {
-        LOGGER.info("[xuanjianmod] 执行打开信息面板");
-        Minecraft.getInstance().execute(() ->
-                Minecraft.getInstance().setScreen(new XuanjianInfoScreen()));
+        LOGGER.info("[xuanjianmod] 打开主界面");
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.setScreen(new XuanjianMainScreen()));
     }
 
     @Override

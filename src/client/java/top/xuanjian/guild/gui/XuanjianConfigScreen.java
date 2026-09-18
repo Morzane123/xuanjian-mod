@@ -1,7 +1,6 @@
 package top.xuanjian.guild.gui;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -9,31 +8,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.xuanjian.guild.XuanjianMod;
 import top.xuanjian.guild.config.ModConfig;
+import top.xuanjian.guild.gui.widget.XjButton;
 
 /**
- * 玄剑公会模组设置页（纯 vanilla Screen，不依赖任何外部库）。
- * /xj settings 打开：官网地址、本服地址、同步/心跳间隔。
+ * 玄剑公会模组设置页（与主界面同一套视觉）。
  *
- * <p>Minecraft 26.1 客户端 GUI 约定同 {@link XuanjianInfoScreen}：
- * 渲染入口 {@code extractRenderState(GuiGraphicsExtractor, int, int, float)} + {@code super} 调用；
- * 颜色必须 8 位 ARGB（写成 0xFFFFFF 会因 alpha=0 完全透明而看不见）。
+ * 26.1 约定同 {@link XuanjianMainScreen}：extractRenderState + 8 位 ARGB 颜色。
  */
 public class XuanjianConfigScreen extends Screen {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("xuanjianmod");
 
-    private static final int C_TITLE = 0xFFFFFFFF;
-    private static final int C_LABEL = 0xFFBFBFBF;
-    private static final int C_HINT = 0xFF8C8C8C;
-    private static final int C_OK = 0xFF55FF55;
-    private static final int C_ERR = 0xFFFF5555;
-    private static final int C_WARN = 0xFFFFDD55;
-    private static final int C_PANEL = 0xC0000000;
-    private static final int C_PANEL_BORDER = 0x55FFFFFF;
-
-    private static final int FIELD_WIDTH = 240;
-    private static final int LABEL_WIDTH = 116;
-    private static final int ROW_HEIGHT = 26;
+    private static final int FIELD_W = 240;
+    private static final int ROW_H = 26;
 
     private final Screen parent;
     private EditBox apiBaseBox;
@@ -41,45 +28,54 @@ public class XuanjianConfigScreen extends Screen {
     private EditBox syncIntervalBox;
     private EditBox heartbeatIntervalBox;
     private String message = "";
-    private int messageColor = C_OK;
+    private int messageColor = UiTheme.SUCCESS;
+
+    private int px, py, pw, ph;
 
     public XuanjianConfigScreen(Screen parent) {
         super(Component.literal("玄剑公会模组设置"));
         this.parent = parent;
     }
 
+    private void computeLayout() {
+        pw = Math.max(300, Math.min(this.width - 40, 460));
+        ph = Math.max(190, Math.min(this.height - 40, 240));
+        px = (this.width - pw) / 2;
+        py = (this.height - ph) / 2;
+    }
+
     @Override
     protected void init() {
-        LOGGER.info("[xuanjianmod] 设置页初始化，尺寸 {}x{}", this.width, this.height);
+        computeLayout();
         ModConfig config = currentConfig();
 
-        int fieldX = this.width / 2 - FIELD_WIDTH / 2 + LABEL_WIDTH / 2;
-        int y = 52;
+        int fieldX = px + (pw - FIELD_W) / 2;
+        int y = py + UiTheme.HEADER_H + 16;
 
-        this.apiBaseBox = addField(fieldX, y, 200, "官网地址",
+        apiBaseBox = addField(fieldX, y, 200, "官网地址",
                 config != null ? config.getApiBase() : ModConfig.DEFAULT_API_BASE);
-        y += ROW_HEIGHT;
-        this.serverIpBox = addField(fieldX, y, 120, "本服地址（可选）",
+        y += ROW_H;
+        serverIpBox = addField(fieldX, y, 120, "本服地址（可选）",
                 config != null ? config.getServerIp() : "");
-        y += ROW_HEIGHT;
-        this.syncIntervalBox = addField(fieldX, y, 6, "同步间隔（秒）",
+        y += ROW_H;
+        syncIntervalBox = addField(fieldX, y, 6, "同步间隔（秒）",
                 String.valueOf(config != null ? config.getSyncInterval() : ModConfig.DEFAULT_SYNC_INTERVAL));
-        y += ROW_HEIGHT;
-        this.heartbeatIntervalBox = addField(fieldX, y, 6, "心跳间隔（秒）",
+        y += ROW_H;
+        heartbeatIntervalBox = addField(fieldX, y, 6, "心跳间隔（秒）",
                 String.valueOf(config != null ? config.getHeartbeatInterval() : ModConfig.DEFAULT_HEARTBEAT_INTERVAL));
 
-        int centerX = this.width / 2;
-        int bottom = this.height - 30;
-        this.addRenderableWidget(Button.builder(Component.literal("保存"), b -> save())
-                .bounds(centerX - 128, bottom, 80, 20).build());
-        this.addRenderableWidget(Button.builder(Component.literal("返回"), b -> this.onClose())
-                .bounds(centerX - 40, bottom, 80, 20).build());
-        this.addRenderableWidget(Button.builder(Component.literal("重置默认"), b -> resetDefaults())
-                .bounds(centerX + 48, bottom, 80, 20).build());
+        int btnY = py + ph - 26;
+        int centerX = px + pw / 2;
+        this.addRenderableWidget(new XjButton(centerX - 126, btnY, 80, UiTheme.BTN_H, "保存",
+                XjButton.Style.PRIMARY, this::save));
+        this.addRenderableWidget(new XjButton(centerX - 40, btnY, 80, UiTheme.BTN_H, "返回",
+                XjButton.Style.SECONDARY, this::onClose));
+        this.addRenderableWidget(new XjButton(centerX + 46, btnY, 80, UiTheme.BTN_H, "重置默认",
+                XjButton.Style.SECONDARY, this::resetDefaults));
     }
 
     private EditBox addField(int x, int y, int maxLength, String label, String value) {
-        EditBox box = new EditBox(this.font, x, y, FIELD_WIDTH, 20, Component.literal(label));
+        EditBox box = new EditBox(this.font, x, y, FIELD_W, 18, Component.literal(label));
         box.setMaxLength(maxLength);
         box.setValue(value == null ? "" : value);
         box.setResponder(s -> message = "");
@@ -99,34 +95,26 @@ public class XuanjianConfigScreen extends Screen {
 
     private void save() {
         ModConfig config = currentConfig();
-        if (config == null) {
-            note("模组主入口未初始化，无法保存", C_ERR);
-            return;
-        }
-        int sync;
-        int heartbeat;
+        if (config == null) { note("模组主入口未初始化，无法保存", UiTheme.DANGER); return; }
+        int sync, heartbeat;
         try {
             sync = Math.max(30, Integer.parseInt(syncIntervalBox.getValue().trim()));
             heartbeat = Math.max(30, Integer.parseInt(heartbeatIntervalBox.getValue().trim()));
         } catch (NumberFormatException e) {
-            note("间隔必须为数字（最小 30）", C_ERR);
+            note("间隔必须为数字（最小 30）", UiTheme.DANGER);
             return;
         }
         String api = apiBaseBox.getValue().trim();
-        if (api.isEmpty()) {
-            note("官网地址不能为空", C_ERR);
-            return;
-        }
+        if (api.isEmpty()) { note("官网地址不能为空", UiTheme.DANGER); return; }
+
         config.setApiBase(api);
         config.setServerIp(serverIpBox.getValue().trim());
         config.setSyncInterval(sync);
         config.setHeartbeatInterval(heartbeat);
         config.save();
         XuanjianMod mod = XuanjianMod.getInstance();
-        if (mod != null) {
-            mod.applyConfig();
-        }
-        note("已保存并生效", C_OK);
+        if (mod != null) mod.applyConfig();
+        note("已保存并生效", UiTheme.SUCCESS);
         LOGGER.info("[xuanjianmod] 设置已保存");
     }
 
@@ -135,50 +123,46 @@ public class XuanjianConfigScreen extends Screen {
         serverIpBox.setValue("");
         syncIntervalBox.setValue(String.valueOf(ModConfig.DEFAULT_SYNC_INTERVAL));
         heartbeatIntervalBox.setValue(String.valueOf(ModConfig.DEFAULT_HEARTBEAT_INTERVAL));
-        note("已填回默认值，点击「保存」后生效", C_WARN);
+        note("已填回默认值，点击「保存」后生效", UiTheme.WARNING);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        // 必须调用 super：渲染已注册 widget（输入框/按钮）
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+        computeLayout();
 
-        int centerX = this.width / 2;
-        graphics.centeredText(this.font, this.title, centerX, 20, C_TITLE);
+        // 背景（在 widget 之下）
+        UiTheme.panel(g, px, py, pw, ph);
+        UiTheme.headerBar(g, px + 1, py + 1, pw - 2, UiTheme.HEADER_H - 1);
 
-        int panelLeft = centerX - FIELD_WIDTH / 2 - 24;
-        int panelRight = centerX + FIELD_WIDTH / 2 + 24;
-        int panelTop = 44;
-        int panelBottom = this.height - 46;
-        if (panelBottom > panelTop + 10) {
-            graphics.fill(panelLeft, panelTop, panelRight, panelBottom, C_PANEL);
-            graphics.outline(panelLeft, panelTop, panelRight, panelBottom, C_PANEL_BORDER);
-        }
+        // widget
+        super.extractRenderState(g, mouseX, mouseY, delta);
 
-        int labelX = centerX - FIELD_WIDTH / 2 - 12;
-        int y = 52;
-        drawRightAligned(graphics, "官网地址", labelX, y, C_LABEL);
-        y += ROW_HEIGHT;
-        drawRightAligned(graphics, "本服地址（可选）", labelX, y, C_LABEL);
-        y += ROW_HEIGHT;
-        drawRightAligned(graphics, "同步间隔（秒，≥30）", labelX, y, C_LABEL);
-        y += ROW_HEIGHT;
-        drawRightAligned(graphics, "心跳间隔（秒，≥30）", labelX, y, C_LABEL);
-        y += ROW_HEIGHT + 8;
+        // 前景
+        UiTheme.text(g, this.font, "模组设置", px + 10, UiTheme.vCenter(this.font, py, UiTheme.HEADER_H), UiTheme.TEXT);
+        UiTheme.divider(g, px + 8, px + pw - 8, py + UiTheme.HEADER_H + 4);
 
-        graphics.text(this.font, "服务器 Key 已弃用：在线状态改用客户端上下线上报，无需填写。",
-                panelLeft + 12, y, C_HINT, true);
-        graphics.text(this.font, "同步间隔＝任务/余额轮询周期；心跳间隔＝在线状态上报周期。",
-                panelLeft + 12, y + this.font.lineHeight + 2, C_HINT, true);
+        int labelRight = px + (pw - FIELD_W) / 2 - 10;
+        int y = py + UiTheme.HEADER_H + 16;
+        drawLabel(g, "官网地址", labelRight, y);
+        y += ROW_H;
+        drawLabel(g, "本服地址", labelRight, y);
+        y += ROW_H;
+        drawLabel(g, "同步间隔", labelRight, y);
+        y += ROW_H;
+        drawLabel(g, "心跳间隔", labelRight, y);
+        y += ROW_H + 2;
 
-        if (this.message != null && !this.message.isEmpty()) {
-            graphics.centeredText(this.font, this.message, centerX, this.height - 52, messageColor);
+        UiTheme.text(g, this.font, "同步间隔＝任务/余额轮询周期；心跳间隔＝在线状态上报周期（均≥30 秒）",
+                px + 12, y, UiTheme.TEXT_MUTED);
+
+        if (message != null && !message.isEmpty()) {
+            UiTheme.textCenter(g, this.font, message, px + pw / 2, py + ph - 40, messageColor);
         }
     }
 
-    /** 标签右对齐到 labelRight，垂直与 20 高的输入框居中对齐 */
-    private void drawRightAligned(GuiGraphicsExtractor graphics, String text, int labelRight, int boxY, int color) {
-        graphics.text(this.font, text, labelRight - this.font.width(text), boxY + 6, color, true);
+    /** 标签右对齐到输入框左侧，垂直与 18 高的输入框居中 */
+    private void drawLabel(GuiGraphicsExtractor g, String text, int rightX, int boxY) {
+        UiTheme.textRight(g, this.font, text, rightX, boxY + 5, UiTheme.TEXT_DIM);
     }
 
     @Override

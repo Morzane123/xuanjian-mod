@@ -55,7 +55,10 @@ jobs:
           body: |
             Xuanjian Guild Mod — Minecraft 26.1.x（含 26.1.2）Fabric 构建。
             - 修复 26.1.2 版本无法加载问题（依赖范围 ~26.1）
-            - 支持绑定 / 签到 / 任务 / 贡献点转账申报 / 日报决策同步
+            - 全新模组主界面：左侧导航 + 卡片式布局，联动官网 API 显示头像、称号、境界、贡献点、排名
+            - 账号页（签到 / 打开官网）、任务页（接取 + 填验证码完成）、申报页、转账页（两步确认）、在线页
+            - 设置页重做，与主界面同一套主题
+            - 接入客户端 gametest：CI 里真实启动客户端逐页截图验收
           make_latest: false
           files: build/libs/*.jar
           fail_on_unmatched_files: false
