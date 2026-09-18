@@ -1,0 +1,88 @@
+name: GUI 截图验收（客户端 gametest）
+
+# 真实启动一次 Minecraft 客户端 → 打开模组 GUI → 逐页截图 → 上传 artifact。
+# 编译只能证明能跑，截图才能证明能看；这是「界面是否正常」在 CI 里的客观验收手段。
+#
+# 断言内容（见 src/gametest/.../XuanjianGuiClientGameTest.java）：
+#   主界面能开、异步加载能结束、五个页面都能切换、截图不是纯色、设置页有控件、结束时回到标题界面。
+#
+# 诊断留档策略：CI 网页看 job 日志需要登录，所以失败时把日志摘要提交成 ci-result.txt 供直接读取；
+# 通过时自动删除该文件，保持分支干净。
+on:
+  push:
+    branches: ['26*', '1.21']
+  workflow_dispatch:
+
+jobs:
+  client-gametest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.1'
+
+      - name: 装 xvfb（无头 GL）
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-utils
+
+      - name: 接受 gametest EULA
+        run: gradle acceptGameTestEula --no-daemon -q || true
+
+      - name: 跑客户端 gametest（截图）
+        run: |
+          set +e
+          xvfb-run -a -s "-screen 0 1280x800x24" gradle runClientGameTest --no-daemon > gametest.log 2>&1
+          echo "$?" > .gt-exit
+          tail -60 gametest.log
+
+      - name: 上传截图
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-screenshots
+          path: |
+            run/**/*.png
+            **/screenshots/**/*.png
+          if-no-files-found: warn
+
+      - name: 生成诊断（仅失败）
+        id: diag
+        run: |
+          if [ "$(cat .gt-exit)" = "0" ] && grep -q "BUILD SUCCESSFUL" gametest.log; then
+            echo "failed=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "failed=1" >> "$GITHUB_OUTPUT"
+          OUT=ci-result.txt
+          : > "$OUT"
+          echo "GAMETEST_EXIT=$(cat .gt-exit)" >> "$OUT"
+          echo "" >> "$OUT"
+          echo "===== gametest 日志关键行 =====" >> "$OUT"
+          grep -nE "gametest\]|GameTest|AssertionError|FAILED|error:|Exception|BUILD" gametest.log | tail -80 >> "$OUT" || true
+
+      - name: 提交诊断（仅失败）/ 清理诊断（通过）
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "${{ steps.diag.outputs.failed }}" = "1" ]; then
+            git add -f ci-result.txt
+            git diff --cached --quiet && exit 0
+            git commit -m "ci: 客户端 gametest 失败诊断 [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            git rm -f --ignore-unmatch --quiet ci-result.txt || true
+            git diff --cached --quiet && exit 0
+            git commit -m "ci: gametest 通过，清理诊断文件 [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi

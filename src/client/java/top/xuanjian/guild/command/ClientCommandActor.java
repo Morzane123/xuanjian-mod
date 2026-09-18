@@ -49,9 +49,9 @@ public class ClientCommandActor implements CommandActor {
 
     @Override
     public void openGui() {
-        LOGGER.info("[xuanjianmod] 执行打开信息面板");
-        Minecraft.getInstance().execute(() ->
-                Minecraft.getInstance().gui.setScreen(new top.xuanjian.guild.gui.XuanjianInfoScreen()));
+        LOGGER.info("[xuanjianmod] 打开主界面");
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.gui.setScreen(new top.xuanjian.guild.gui.XuanjianMainScreen()));
     }
 
     @Override
@@ -59,7 +59,7 @@ public class ClientCommandActor implements CommandActor {
         LOGGER.info("[xuanjianmod] 执行打开设置页");
         Minecraft mc = Minecraft.getInstance();
         // 26.2 的 Minecraft 没有公开的 screen 字段（26.1 才有），父界面传 null：
-        // 设置页「返回」即关闭 GUI，行为与之前一致。
+        // 设置页「返回」会落到主界面（见 XuanjianConfigScreen.onClose），而不是直接关掉 GUI。
         mc.execute(() -> mc.gui.setScreen(new top.xuanjian.guild.gui.XuanjianConfigScreen(null)));
     }
 }

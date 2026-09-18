@@ -53,8 +53,11 @@ jobs:
           tag_name: v1.0.1-26.2
           name: xuanjianmod 26.2.x (v1.0.1-26.2)
           body: |
-            Xuanjian Guild Mod — Minecraft 26.2.x Fabric 构建（含信息面板 / 设置页 GUI）。
-            - 修正 GUI 信息面板 / 设置页（按 26.2 渲染 API 适配）
+            Xuanjian Guild Mod — Minecraft 26.2.x Fabric 构建。
+            - 全新模组主界面：左侧导航 + 卡片式布局，联动官网 API 显示头像、称号、境界、贡献点、排名
+            - 账号页（签到 / 打开官网）、任务页（接取 + 填验证码完成）、申报页、转账页（两步确认）、在线页
+            - 设置页重做，与主界面同一套主题
+            - 接入客户端 gametest：CI 里真实启动客户端逐页截图验收
             - 支持绑定 / 签到 / 任务 / 贡献点转账申报 / 日报决策同步
           make_latest: true
           files: build/libs/*.jar

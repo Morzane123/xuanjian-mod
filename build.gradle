@@ -26,6 +26,17 @@ loom {
 	}
 }
 
+// 客户端 gametest：真实启动一次客户端 → 打开 GUI → 截图，用于验收界面（CI 里跑）
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "xuanjianmod-test"
+		eula = true
+		enableGameTests = false
+		enableClientGameTests = true
+	}
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "xuanjianmod-test",
+  "version": "1.0.0",
+  "name": "Xuanjian Mod Client Game Tests",
+  "description": "客户端 gametest：真实启动客户端打开模组 GUI 并截图，用于界面验收",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "top.xuanjian.guild.gametest.XuanjianGuiClientGameTest"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.1",
+    "xuanjianmod": "*"
+  }
+}
