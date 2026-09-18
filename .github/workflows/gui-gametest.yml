@@ -58,7 +58,10 @@ jobs:
       - name: 生成诊断（仅失败）
         id: diag
         run: |
-          if [ "$(cat .gt-exit)" = "0" ] && grep -q "BUILD SUCCESSFUL" gametest.log; then
+          SHOTS=$(find . -path '*screenshots*' -name '*.png' 2>/dev/null | wc -l)
+          echo "截图数量: $SHOTS"
+          # 通过 = gametest 退出码 0 + 构建成功 + 真的截到了 6 张图（防「测试没跑也算过」）
+          if [ "$(cat .gt-exit)" = "0" ] && grep -q "BUILD SUCCESSFUL" gametest.log && [ "$SHOTS" -ge 6 ]; then
             echo "failed=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -66,6 +69,7 @@ jobs:
           OUT=ci-result.txt
           : > "$OUT"
           echo "GAMETEST_EXIT=$(cat .gt-exit)" >> "$OUT"
+          echo "SCREENSHOTS=$SHOTS" >> "$OUT"
           echo "" >> "$OUT"
           echo "===== gametest 日志开头（前置校验/配置错误通常在这里） =====" >> "$OUT"
           head -60 gametest.log >> "$OUT" || true
