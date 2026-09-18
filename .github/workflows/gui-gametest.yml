@@ -58,7 +58,10 @@ jobs:
       - name: 生成诊断（仅失败）
         id: diag
         run: |
-          if [ "$(cat .gt-exit)" = "0" ] && grep -q "BUILD SUCCESSFUL" gametest.log; then
+          SHOTS=$(find . -path '*screenshots*' -name '*.png' 2>/dev/null | wc -l)
+          echo "截图数量: $SHOTS"
+          # 通过 = gametest 退出码 0 + 构建成功 + 真的截到了 6 张图（防「测试没跑也算过」）
+          if [ "$(cat .gt-exit)" = "0" ] && grep -q "BUILD SUCCESSFUL" gametest.log && [ "$SHOTS" -ge 6 ]; then
             echo "failed=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -66,9 +69,16 @@ jobs:
           OUT=ci-result.txt
           : > "$OUT"
           echo "GAMETEST_EXIT=$(cat .gt-exit)" >> "$OUT"
+          echo "SCREENSHOTS=$SHOTS" >> "$OUT"
+          echo "" >> "$OUT"
+          echo "===== gametest 日志开头（前置校验/配置错误通常在这里） =====" >> "$OUT"
+          head -60 gametest.log >> "$OUT" || true
           echo "" >> "$OUT"
           echo "===== gametest 日志关键行 =====" >> "$OUT"
           grep -nE "gametest\]|GameTest|AssertionError|FAILED|error:|Exception|BUILD" gametest.log | tail -80 >> "$OUT" || true
+          echo "" >> "$OUT"
+          echo "===== gametest 日志结尾 150 行 =====" >> "$OUT"
+          tail -150 gametest.log >> "$OUT" || true
 
       - name: 提交诊断（仅失败）/ 清理诊断（通过）
         if: always()
@@ -77,12 +87,20 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ "${{ steps.diag.outputs.failed }}" = "1" ]; then
             git add -f ci-result.txt
-            git diff --cached --quiet && exit 0
-            git commit -m "ci: 客户端 gametest 失败诊断 [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            if ! git diff --cached --quiet; then
+              git commit -m "ci: 客户端 gametest 失败诊断 [skip ci]"
+              git push origin HEAD:${{ github.ref_name }}
+            fi
           else
             git rm -f --ignore-unmatch --quiet ci-result.txt || true
-            git diff --cached --quiet && exit 0
-            git commit -m "ci: gametest 通过，清理诊断文件 [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            if ! git diff --cached --quiet; then
+              git commit -m "ci: gametest 通过，清理诊断文件 [skip ci]"
+              git push origin HEAD:${{ github.ref_name }}
+            fi
           fi
+
+      - name: 失败则让 job 变红
+        if: always() && steps.diag.outputs.failed == '1'
+        run: |
+          echo "客户端 gametest 失败，详见本分支 ci-result.txt" >&2
+          exit 1
